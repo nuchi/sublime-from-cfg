@@ -149,18 +149,17 @@ class SublimeSyntax:
             for i in sorted_indices[:-1]:
                 contexts[f'{branch_context_name}@{i}'] = [{
                     'match': '',
-                    'set': L(['pop3!', fail_name, f'{nt_context_name}@{i}']),
+                    'set': L(['pop3!', fail_name, follow_check_name, 'pop2!', f'{nt_context_name}@{i}']),
                 }]
             contexts[f'{branch_context_name}@{sorted_indices[-1]}'] = [{
                 'match': '',
-                'set': L(['pop3!', 'pop3!', f'{nt_context_name}@{sorted_indices[-1]}']),
+                'set': L(['pop3!', 'pop3!', follow_check_name, 'pop2!', f'{nt_context_name}@{sorted_indices[-1]}']),
             }]
 
         for i, production in enumerate(alternation.productions):
             contexts[f'{nt_context_name}@{i}'] = [{
                 'match': '',
-                'set': L([follow_check_name, 'pop2!']
-                          + self._production_stack(production))
+                'set': L(self._production_stack(production))
             }]
 
         contexts[follow_check_name] = [
