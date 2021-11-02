@@ -1,0 +1,63 @@
+%YAML 1.2
+---
+version: 2
+name: test
+file_extensions:
+- test
+scope: source.test
+contexts:
+  pop2!:
+  - match: ''
+    pop: 2
+  pop3!:
+  - match: ''
+    pop: 3
+  fail!:
+  - match: (?=\S)
+    pop: 1
+  fail_forever!:
+  - match: \S
+    scope: invalid.illegal.test
+  main:
+  - match: ''
+    push:
+    - fail_forever!
+    - fail_forever!
+    - S
+  S:
+  - match: (?=a)
+    set: S!0,1
+  - include: fail!
+  S!0,1:
+  - match: ''
+    branch_point: S!0,1
+    branch: ['S!0,1@0', 'S!0,1@1']
+  S!0,1@fail:
+  - match: ''
+    fail: S!0,1
+  S!0,1@0:
+  - match: ''
+    set: [pop3!, 'S!0,1@fail', S@0]
+  S!0,1@1:
+  - match: ''
+    set: [pop3!, pop3!, S@1]
+  S@0:
+  - match: ''
+    set: [S@follow, pop2!, T.0, pop2!, T.1]
+  S@1:
+  - match: ''
+    set: [S@follow, pop2!, T.2, pop2!, T.1]
+  S@follow:
+  - include: fail!
+  T.0:
+  - match: b
+    pop: 2
+  - include: fail!
+  T.1:
+  - match: a
+    pop: 2
+  - include: fail!
+  T.2:
+  - match: c
+    pop: 2
+  - include: fail!
