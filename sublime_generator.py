@@ -69,9 +69,9 @@ class SublimeSyntax:
             'pop3!': [{'match': '', 'pop': 3}],
             'fail!': [{'match': r'(?=\S)', 'pop': 1}],
             'fail_forever!': [{'match': r'\S', 'scope': 'invalid.illegal'}],
-            'main': [{'match': '', 'push': [
+            'main': [{'match': '', 'push': L([
                 'fail_forever!', 'fail_forever!', grammar.start.symbol
-            ]}]
+            ])}]
         }
         self._terminals = {}
 
