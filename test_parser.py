@@ -2,7 +2,7 @@ from parse_sbnf import SbnfParser
 from sublime_generator import SublimeSyntax
 
 text = """
-main : <>
+main : <>  # sbnf syntax extension: <> is the empty production
      | xs ca-or-cb main
      ;
 
