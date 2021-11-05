@@ -70,7 +70,7 @@ class SublimeSyntax:
             'fail!': [{'match': r'(?=\S)', 'pop': 1}],
             'fail_forever!': [{'match': r'\S', 'scope': 'invalid.illegal'}],
             'main': [{'match': '', 'push': L([
-                'fail_forever!', 'fail_forever!', grammar.start.symbol
+                'fail_forever!', 'fail_forever!', grammar.start.name
             ])}]
         }
         self._terminals = {}
@@ -104,9 +104,9 @@ class SublimeSyntax:
     def _generate_contexts_for_nt(self, nt, alternation, table, follow_set):
         contexts = {}
         if alternation.meta_scope is not None:
-            nt_context_name = f'{nt.symbol}"'
-            nt_meta_name = f'{nt.symbol}"meta'
-            contexts[nt.symbol] = [
+            nt_context_name = f'{nt.name}"'
+            nt_meta_name = f'{nt.name}"meta'
+            contexts[nt.name] = [
                 {'match': '', 'set': ([nt_meta_name, 'pop2!', nt_context_name])},
             ]
             contexts[nt_meta_name] = [
@@ -114,7 +114,7 @@ class SublimeSyntax:
                 {'match': '', 'pop': 2},
             ]
         else:
-            nt_context_name = nt.symbol
+            nt_context_name = nt.name
 
         nt_context = []
         contexts[nt_context_name] = nt_context
@@ -183,7 +183,7 @@ class SublimeSyntax:
 
     def _get_symbol_context_name(self, symbol):
         if isinstance(symbol, Nonterminal):
-            return symbol.symbol
+            return symbol.name
         name, _ = self._get_terminal_context(symbol)
         return name
 

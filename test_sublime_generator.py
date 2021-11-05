@@ -11,7 +11,11 @@ from sublime_generator import SublimeSyntax
 g = NonLeftRecursiveGrammar({
     NT('START'): Alternation([
         EMPTY,
-        Concatenation([T('x', 'entity.name'), NT('CA_or_CB'), NT('START')])
+        Concatenation([NT('XS'), NT('CA_or_CB'), NT('START')])
+    ]),
+    NT('XS'): Alternation([
+        Concatenation([T('x', 'entity.name')]),
+        Concatenation([T('x', 'entity.name'), NT('XS')]),
     ]),
     NT('CA_or_CB'): Alternation([
         Concatenation([NT('CA')]),

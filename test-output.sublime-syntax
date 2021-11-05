@@ -20,85 +20,112 @@ contexts:
     scope: invalid.illegal.test
   main:
   - match: ''
-    push: [fail_forever!, fail_forever!, START]
-  START:
+    push: [fail_forever!, fail_forever!, main/]
+  main/:
   - match: (?=x)
-    set: START@1
+    set: main/@1
   - include: fail!
-  START@0:
+  main/@0:
   - match: ''
     set: [pop2!]
-  START@1:
+  main/@1:
   - match: ''
-    set: [START, pop2!, CA_or_CB, pop2!, T.0]
-  START@follow:
+    set: [main/, pop2!, ca-or-cb, pop2!, xs]
+  main/@follow:
   - include: fail!
-  CA_or_CB:
+  ca-or-cb:
   - match: (?=c)
-    set: CA_or_CB!0,1
+    set: ca-or-cb!0,1
   - include: fail!
-  CA_or_CB!0,1:
+  ca-or-cb!0,1:
   - match: ''
-    branch_point: CA_or_CB!0,1
-    branch: ['CA_or_CB!0,1@0', 'CA_or_CB!0,1@1']
-  CA_or_CB!0,1@fail:
+    branch_point: ca-or-cb!0,1
+    branch: ['ca-or-cb!0,1@0', 'ca-or-cb!0,1@1']
+  ca-or-cb!0,1@fail:
   - match: ''
-    fail: CA_or_CB!0,1
-  CA_or_CB!0,1@0:
+    fail: ca-or-cb!0,1
+  ca-or-cb!0,1@0:
   - match: ''
-    set: [pop3!, 'CA_or_CB!0,1@fail', CA_or_CB@follow, pop2!, CA_or_CB@0]
-  CA_or_CB!0,1@1:
+    set: [pop3!, 'ca-or-cb!0,1@fail', ca-or-cb@follow, pop2!, ca-or-cb@0]
+  ca-or-cb!0,1@1:
   - match: ''
-    set: [pop3!, pop3!, CA_or_CB@follow, pop2!, CA_or_CB@1]
-  CA_or_CB@0:
+    set: [pop3!, pop3!, ca-or-cb@follow, pop2!, ca-or-cb@1]
+  ca-or-cb@0:
   - match: ''
-    set: [CA]
-  CA_or_CB@1:
+    set: [ca]
+  ca-or-cb@1:
   - match: ''
-    set: [CB]
-  CA_or_CB@follow:
+    set: [cb]
+  ca-or-cb@follow:
   - match: (?=x)
     pop: 2
   - include: fail!
-  CA:
+  xs:
+  - match: (?=x)
+    set: xs!0,1
+  - include: fail!
+  xs!0,1:
+  - match: ''
+    branch_point: xs!0,1
+    branch: ['xs!0,1@0', 'xs!0,1@1']
+  xs!0,1@fail:
+  - match: ''
+    fail: xs!0,1
+  xs!0,1@0:
+  - match: ''
+    set: [pop3!, 'xs!0,1@fail', xs@follow, pop2!, xs@0]
+  xs!0,1@1:
+  - match: ''
+    set: [pop3!, pop3!, xs@follow, pop2!, xs@1]
+  xs@0:
+  - match: ''
+    set: [T.0]
+  xs@1:
+  - match: ''
+    set: [xs, pop2!, T.0]
+  xs@follow:
+  - match: (?=c)
+    pop: 2
+  - include: fail!
+  ca:
   - match: ''
     set:
-    - CA"meta
+    - ca"meta
     - pop2!
-    - CA"
-  CA"meta:
+    - ca"
+  ca"meta:
   - meta_scope: variable.function.test
   - match: ''
     pop: 2
-  CA":
+  ca":
   - match: (?=c)
-    set: CA"@0
+    set: ca"@0
   - include: fail!
-  CA"@0:
+  ca"@0:
   - match: ''
     set: [T.1, pop2!, T.2]
-  CA"@follow:
+  ca"@follow:
   - match: (?=x)
     pop: 2
   - include: fail!
-  CB:
+  cb:
   - match: ''
     set:
-    - CB"meta
+    - cb"meta
     - pop2!
-    - CB"
-  CB"meta:
+    - cb"
+  cb"meta:
   - meta_scope: variable.parameter.test
   - match: ''
     pop: 2
-  CB":
+  cb":
   - match: (?=c)
-    set: CB"@0
+    set: cb"@0
   - include: fail!
-  CB"@0:
+  cb"@0:
   - match: ''
     set: [T.3, pop2!, T.4]
-  CB"@follow:
+  cb"@follow:
   - match: (?=x)
     pop: 2
   - include: fail!

@@ -1,7 +1,8 @@
 from collections import defaultdict
 from dataclasses import dataclass
 import functools
-from typing import Optional
+from hashlib import sha256
+from typing import Optional, Union
 
 
 class Symbol:
@@ -23,9 +24,20 @@ class Terminal(Symbol):
 @dataclass(frozen=True)
 class Nonterminal(Symbol):
     symbol: str
+    args: tuple[Union['Nonterminal', str]] = tuple()
+
+    @property
+    def name(self):
+        if len(self.args) == 0:
+            if self.symbol == 'main':
+                return 'main/'
+            return self.symbol
+        args_hash = sha256(
+            repr(self.args).encode('utf8')).hexdigest()[:7]
+        return f'{self.symbol}/{args_hash}'
 
     def __str__(self):
-        return self.symbol
+        return self.name
 
 
 @dataclass
@@ -101,7 +113,7 @@ class NonLeftRecursiveGrammar:
     @functools.lru_cache()
     def _get_first_sets(self, symbol):
         if symbol in self.recursion_guard:
-            recursed_symbols = ", ".join([t.symbol for t in self.recursion_guard])
+            recursed_symbols = ", ".join([t.name for t in self.recursion_guard])
             raise ValueError(f'Left recursion detected: {recursed_symbols}')
         self.recursion_guard.add(symbol)
 
