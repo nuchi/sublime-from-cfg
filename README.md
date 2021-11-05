@@ -17,5 +17,14 @@ See [the Wikipedia page on LL parsers](https://en.wikipedia.org/wiki/LL_parser) 
 ## TO-DO:
 
 - [ ] Detect whether the input grammar is follow-determined. This may be undecidable for all I know.
-- [ ] Accept a convenient text description of a grammar rather than require constructing a Python object by hand. [Benjamin Schaaf's sbnf](https://github.com/BenjaminSchaaf/sbnf/) is a project with essentially the same goals as this one, and has a very nice syntax for defining grammars so it'd be nice to allow inputs in that format.
-- [ ] Also add other conveniences from sbnf such as a prototype context, and embedding other grammars.
+- [ ] Automatically rewrite rules involving left recursion
+- Accept a convenient text description of a grammar rather than require constructing a Python object by hand. [Benjamin Schaaf's sbnf](https://github.com/BenjaminSchaaf/sbnf/) is a project with essentially the same goals as this one, and has a very nice syntax for defining grammars so it'd be nice to allow inputs in that format.
+    - [x] Parse the sbnf file format
+    - [x] Handle variables and rules
+    - [x] Handle parameters
+    - [x] Handle options for scope, meta_scope
+    - [ ] Handle options for include-prototype, captures
+    - [ ] Handle `prototype`
+    - [ ] Handle `%embed` and `%include`
+    - [ ] Handle `~`, `*`, `?`, and parenthesized expressions
+    - [ ] Handle global parameters
