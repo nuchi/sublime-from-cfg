@@ -130,8 +130,6 @@ class SublimeSyntax:
             ]
             contexts[follow_check_name].append({'include': 'fail!'})
 
-
-        # table: { Terminal: list(indices) }
         sorted_table = sorted(
             table.items(),
             key=lambda kv: tuple() if kv[0] == r'\S' else tuple(sorted(kv[1])[::-1]),

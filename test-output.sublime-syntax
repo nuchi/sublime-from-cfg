@@ -24,15 +24,48 @@ contexts:
   main/:
   - match: (?=x)
     set: main/@1
+  - match: (?=")
+    set: main/@1
+  - match: (?=\S)
+    set: main/@1
+  main/@follow:
   - include: fail!
   main/@0:
   - match: ''
     set: [pop2!]
   main/@1:
   - match: ''
-    set: [main/, pop2!, ca-or-cb, pop2!, xs]
-  main/@follow:
+    set: [main/, pop2!, line]
+  line:
+  - match: (?=")
+    set: line@1
+  - match: (?=x)
+    set: line@0
+  - match: (?=\S)
+    set: line@0
+  line@0:
+  - match: ''
+    set: [ca-or-cb, pop2!, xs]
+  line@1:
+  - match: ''
+    set: [string]
+  string:
+  - match: ''
+    set:
+    - string"meta
+    - pop2!
+    - string"
+  string"meta:
+  - meta_scope: string.quoted.test
+  - match: ''
+    pop: 2
+  string":
+  - match: (?=")
+    set: string"@0
   - include: fail!
+  string"@0:
+  - match: ''
+    set: [T.0, pop2!, T.1]
   ca-or-cb:
   - match: (?=c)
     set: ca-or-cb!0,1
@@ -46,23 +79,24 @@ contexts:
     fail: ca-or-cb!0,1
   ca-or-cb!0,1@0:
   - match: ''
-    set: [pop3!, 'ca-or-cb!0,1@fail', ca-or-cb@follow, pop2!, ca-or-cb@0]
+    set: [pop3!, 'ca-or-cb!0,1@fail', pop2!, pop2!, ca-or-cb@0]
   ca-or-cb!0,1@1:
   - match: ''
-    set: [pop3!, pop3!, ca-or-cb@follow, pop2!, ca-or-cb@1]
+    set: [pop3!, pop3!, pop2!, pop2!, ca-or-cb@1]
   ca-or-cb@0:
   - match: ''
     set: [ca]
   ca-or-cb@1:
   - match: ''
     set: [cb]
-  ca-or-cb@follow:
-  - match: (?=x)
-    pop: 2
-  - include: fail!
   xs:
   - match: (?=x)
     set: xs!0,1
+  - match: (?=\S)
+    set: xs@1
+  xs@follow:
+  - match: (?=c)
+    pop: 2
   - include: fail!
   xs!0,1:
   - match: ''
@@ -79,14 +113,10 @@ contexts:
     set: [pop3!, pop3!, xs@follow, pop2!, xs@1]
   xs@0:
   - match: ''
-    set: [T.0]
+    set: [T.2]
   xs@1:
   - match: ''
-    set: [xs, pop2!, T.0]
-  xs@follow:
-  - match: (?=c)
-    pop: 2
-  - include: fail!
+    set: [xs, pop2!, T.3]
   ca:
   - match: ''
     set:
@@ -103,11 +133,7 @@ contexts:
   - include: fail!
   ca"@0:
   - match: ''
-    set: [T.1, pop2!, T.2]
-  ca"@follow:
-  - match: (?=x)
-    pop: 2
-  - include: fail!
+    set: [T.4, pop2!, T.5]
   cb:
   - match: ''
     set:
@@ -124,30 +150,39 @@ contexts:
   - include: fail!
   cb"@0:
   - match: ''
-    set: [T.3, pop2!, T.4]
-  cb"@follow:
-  - match: (?=x)
-    pop: 2
-  - include: fail!
+    set: [T.6, pop2!, T.7]
   T.0:
+  - match: '"'
+    pop: 2
+    scope: punctuation.definition.string.end.test
+  T.1:
+  - match: '"'
+    pop: 2
+    scope: punctuation.definition.string.begin.test
+  - include: fail!
+  T.2:
+  - match: x
+    pop: 2
+    scope: keyword.operator.test
+  - include: fail!
+  T.3:
   - match: x
     pop: 2
     scope: entity.name.test
-  - include: fail!
-  T.1:
+  T.4:
   - match: a
     pop: 2
   - include: fail!
-  T.2:
+  T.5:
   - match: c
     pop: 2
     scope: ac.test
   - include: fail!
-  T.3:
+  T.6:
   - match: b
     pop: 2
   - include: fail!
-  T.4:
+  T.7:
   - match: c
     pop: 2
     scope: bc.test

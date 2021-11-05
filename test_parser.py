@@ -3,11 +3,22 @@ from sublime_generator import SublimeSyntax
 
 text = """
 main : <>  # sbnf syntax extension: <> is the empty production
-     | xs ca-or-cb main
+     | line main
      ;
 
-xs : 'x'{entity.name}
-   | 'x'{entity.name} xs
+line : xs ca-or-cb
+     | string
+     ;
+
+string{string.quoted} :
+    QUOTE{punctuation.definition.string.begin}
+    ~QUOTE{punctuation.definition.string.end}
+    ;
+
+QUOTE = `"`
+
+xs : 'x'{keyword.operator}
+   | ~'x'{entity.name} xs
    ;
 
 ca-or-cb : ca

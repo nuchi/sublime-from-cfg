@@ -262,10 +262,12 @@ class SbnfParser(Parser):
     def production(self, p):
         return lambda **context: Concatenation([])
 
-    @_('[ PASSIVE ] pattern_item [ star_or_question ]')
+    # Restore this when passives are implemented for things other than terminals
+    # @_('[ PASSIVE ] pattern_item [ star_or_question ]')
+    @_('pattern_item [ star_or_question ]')
     def pattern_element(self, p):
-        if p.PASSIVE is not None:
-            raise NotImplementedError('Passive (~) not yet supported.')
+        # if p.PASSIVE is not None:
+        #     raise NotImplementedError('Passive (~) not yet supported.')
         pattern_item = p.pattern_item
         return lambda **context: pattern_item(**context)
 
@@ -274,23 +276,27 @@ class SbnfParser(Parser):
         raise NotImplementedError(f'{p[0]} not yet supported.')
         return p[0]
 
-    @_('literal_or_regex [ options ] [ embed_include ]')
+    @_('[ PASSIVE ] literal_or_regex [ options ] [ embed_include ]')
     def pattern_item(self, p):
         lit_or_reg = p.literal_or_regex
         options = (lambda **context: None) if p.options is None else p.options
+        is_passive = bool(p.PASSIVE is not None)
         return lambda **context: Terminal(
             lit_or_reg(**context),
-            options(**context)
+            options(**context),
+            passive=is_passive,
         )
 
-    @_('LPAR alternates RPAR')
+    @_('[ PASSIVE ] LPAR alternates RPAR')
     def pattern_item(self, p):
         raise NotImplementedError(
             f'Line {p._slice[0].lineno}: Parentheses in rules not supported yet.')
         return p.alternates
 
-    @_('IDENT [ arguments ]')
+    @_('[ PASSIVE ] IDENT [ arguments ]')
     def pattern_item(self, p):
+        if p.PASSIVE is not None:
+            raise NotImplementedError('Passives (~) only supported for terminals.')
         arguments = p.arguments or (lambda **context: [])
         IDENT = p.IDENT
         def make_symbol(i, **context):
@@ -307,11 +313,12 @@ class SbnfParser(Parser):
             return nt
         return partial(make_symbol, IDENT)
 
-    @_('U_IDENT [ options ]')
+    @_('[ PASSIVE ] U_IDENT [ options ]')
     def pattern_item(self, p):
         U_IDENT = p.U_IDENT
         options = p.options or (lambda **context: None)
-        return lambda **context: Terminal(self.variables[U_IDENT](), options())
+        is_passive = bool(p.PASSIVE is not None)
+        return lambda **context: Terminal(self.variables[U_IDENT](), options(), is_passive)
 
 
     @_('LBRACE OPTIONS RBRACE')
@@ -342,6 +349,10 @@ class SbnfParser(Parser):
     def literal(self, p):
         as_regex = re.escape(p.LITERAL).replace('{', '{{').replace('}', '}}')
         return lambda **context: as_regex.format(**context)
+
+    def error(self, token):
+        super().error(token)
+        raise ValueError('Syntax error; aborting.')
 
     def find_matching_rule(self, name, args):
         for (ident, params), rule in self.parameterized_rules.items():
