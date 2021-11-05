@@ -89,10 +89,14 @@ class NonLeftRecursiveGrammar:
             for s in first_set:
                 if s is not None:
                     table[s.regex].add(i)
+                    if s.passive:
+                        table[r'\S'].add(i)
                 else:
                     for t in follow_set:
                         if t is not None:
                             table[t.regex].add(i)
+                            if t.passive:
+                                table[r'\S'].add(i)
         return table
 
     def _get_first_set_for_string(self, symbols):
@@ -118,7 +122,7 @@ class NonLeftRecursiveGrammar:
         self.recursion_guard.add(symbol)
 
         if isinstance(symbol, Terminal):
-            return [set([Terminal(symbol.regex, None)])]
+            return [set([Terminal(symbol.regex, passive=symbol.passive)])]
 
         first_sets = [
             self._get_first_set_for_string(production.concats)

@@ -118,8 +118,25 @@ class SublimeSyntax:
 
         nt_context = []
         contexts[nt_context_name] = nt_context
-        follow_check_name = f'{nt_context_name}@follow'
-        sorted_table = sorted(table.items(), key=lambda kv: tuple(sorted(kv[1])))
+
+        # follow set: no-op if any of the follow terminals are passive
+        if any(t is not None and t.passive for t in follow_set):
+            follow_check_name = 'pop2!'
+        else:
+            follow_check_name = f'{nt_context_name}@follow'
+            contexts[follow_check_name] = [
+                {'match': f'(?={t.regex})', 'pop': 2}
+                for t in follow_set if t is not None
+            ]
+            contexts[follow_check_name].append({'include': 'fail!'})
+
+
+        # table: { Terminal: list(indices) }
+        sorted_table = sorted(
+            table.items(),
+            key=lambda kv: tuple() if kv[0] == r'\S' else tuple(sorted(kv[1])[::-1]),
+            reverse=True,
+        )
         branch_contexts_todo = set()
         for t, indices in sorted_table:
             if len(indices) == 1:
@@ -134,7 +151,8 @@ class SublimeSyntax:
                     'set': branch_context_name,
                 })
                 branch_contexts_todo.add(tuple(sorted(indices)))
-        nt_context.append({'include': 'fail!'})
+        if r'\S' not in table:
+            nt_context.append({'include': 'fail!'})
 
         for indices in branch_contexts_todo:
             branch_context_name = branch_name(nt_context_name, indices)
@@ -162,12 +180,6 @@ class SublimeSyntax:
                 'set': L(self._production_stack(production))
             }]
 
-        contexts[follow_check_name] = [
-            {'match': f'(?={t.regex})', 'pop': 2}
-            for t in follow_set if t is not None
-        ]
-        contexts[follow_check_name].append({'include': 'fail!'})
-
         return contexts
 
     def _get_terminal_context(self, terminal):
@@ -175,9 +187,12 @@ class SublimeSyntax:
             match = {'match': terminal.regex, 'pop': 2}
             if terminal.scope is not None:
                 match['scope'] = terminal.scope
+            matches = [match]
+            if not terminal.passive:
+                matches.append({'include': 'fail!'})
             self._terminals[terminal] = (
                 f'T.{len(self._terminals)}',
-                [match, {'include': 'fail!'}]
+                matches
             )
         return self._terminals[terminal]
 

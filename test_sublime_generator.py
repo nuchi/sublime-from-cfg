@@ -11,11 +11,21 @@ from sublime_generator import SublimeSyntax
 g = NonLeftRecursiveGrammar({
     NT('START'): Alternation([
         EMPTY,
-        Concatenation([NT('XS'), NT('CA_or_CB'), NT('START')])
+        Concatenation([NT('LINE'), NT('START')])
+    ]),
+    NT('LINE'): Alternation([
+        Concatenation([NT('XS'), NT('CA_or_CB')]),
+        Concatenation([NT('STRING')]),
+    ]),
+    NT('STRING'): Alternation([
+        Concatenation([T('"'), NT('PASS_QUOTE')]),
+    ], 'string.quoted'),
+    NT('PASS_QUOTE'): Alternation([
+        Concatenation([T('"', passive=True)]),
     ]),
     NT('XS'): Alternation([
-        Concatenation([T('x', 'entity.name')]),
-        Concatenation([T('x', 'entity.name'), NT('XS')]),
+        Concatenation([T('x', 'keyword.operator')]),
+        Concatenation([T('x', 'entity.name', passive=True), NT('XS')]),
     ]),
     NT('CA_or_CB'): Alternation([
         Concatenation([NT('CA')]),
