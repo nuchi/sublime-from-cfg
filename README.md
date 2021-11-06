@@ -26,5 +26,7 @@ See [the Wikipedia page on LL parsers](https://en.wikipedia.org/wiki/LL_parser) 
     - [ ] Handle options for include-prototype, captures
     - [ ] Handle `prototype`
     - [ ] Handle `%embed` and `%include`
-    - [ ] Handle `~`, `*`, `?`, and parenthesized expressions
+    - [x] Handle `*`, `?`, and parenthesized expressions
+    - [x] Handle passive terminals
+    - [ ] Handle passive expressions
     - [ ] Handle global parameters
