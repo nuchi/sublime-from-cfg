@@ -333,7 +333,7 @@ class SbnfParser(Parser):
                     return symbol
                 i = symbol.symbol
             nt = Nonterminal(i, args)
-            self.to_do.add((i, args))
+            self.to_do.add(nt)
             return nt
         return partial(make_symbol, IDENT)
 
@@ -408,17 +408,18 @@ class SbnfParser(Parser):
         raise ValueError(f'No matching rule found for {name}, {args}')
 
     def make_actualized_rules(self, context):
-        self.to_do.add(('main', tuple()))
+        self.to_do.add(Nonterminal('main'))
         actual_rules = {}
         while self.to_do:
             to_do, self.to_do = self.to_do, set()
-            for name, args in to_do:
-                if (name, args) in actual_rules:
+            for nt in to_do:
+                if nt in actual_rules:
                     continue
-
+                name = nt.symbol
+                args = nt.args
                 rule, rule_context = self.find_matching_rule(name, args)
                 new_context = {**context, **rule_context}
-                actual_rules[(name, args)] = rule(**new_context)
+                actual_rules[nt] = rule(**new_context)
         return actual_rules
 
     def make_grammar(self, text):

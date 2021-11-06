@@ -16,8 +16,8 @@ def simplify_grammar(grammar):
     generated_rules = {}
     to_do = list(grammar.items())
     while to_do:
-        nt_args, alternation = to_do.pop(0)
-        generated_rules[Nonterminal(*nt_args)] = Alternation(
+        nt, alternation = to_do.pop(0)
+        generated_rules[nt] = Alternation(
             productions=[
                 Concatenation([
                     process_item(concat, grammar, to_do)
@@ -55,7 +55,7 @@ def process_item(item, grammar, to_do):
 
 def process_alternation(item, grammar, to_do):
     new_nt = Nonterminal(item.name)
-    to_do.append(((new_nt.symbol, tuple()), item))
+    to_do.append((new_nt, item))
     return new_nt
 
 
@@ -70,7 +70,7 @@ def process_repetition(item, grammar, to_do):
     if isinstance(item, (Terminal, Nonterminal)):
         repetition_nt = Nonterminal(f'/*/{item.name}')
         new_rule = Alternation([Concatenation([]), Concatenation([item, repetition_nt])])
-        to_do.append(((repetition_nt.symbol, tuple()), new_rule))
+        to_do.append((repetition_nt, new_rule))
         return repetition_nt
 
     if isinstance(item, Alternation):
@@ -93,7 +93,7 @@ def process_optional(item, grammar, to_do):
     if isinstance(item, (Terminal, Nonterminal)):
         opt_nt = Nonterminal(f'/opt/{item.name}')
         new_rule = Alternation([Concatenation([]), Concatenation([item])])
-        to_do.append(((opt_nt.symbol, tuple()), new_rule))
+        to_do.append((opt_nt, new_rule))
         return opt_nt
 
     if isinstance(item, Alternation):
