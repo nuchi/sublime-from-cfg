@@ -318,7 +318,13 @@ class SbnfParser(Parser):
         U_IDENT = p.U_IDENT
         options = p.options or (lambda **context: None)
         is_passive = bool(p.PASSIVE is not None)
-        return lambda **context: Terminal(self.variables[U_IDENT](), options(), is_passive)
+        def expand_u_ident(**context):
+            if U_IDENT in self.variables:
+                regex = self.variables[U_IDENT]()
+            else:
+                regex = context[U_IDENT].regex
+            return Terminal(regex, options(**context), is_passive)
+        return expand_u_ident
 
 
     @_('LBRACE OPTIONS RBRACE')
