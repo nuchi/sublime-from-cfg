@@ -149,9 +149,6 @@ class OptionsLexer(Lexer):
         return t
 
 
-# lexer = SbnfLexer()
-
-
 class SbnfParser(Parser):
     tokens = SbnfLexer.tokens \
            | LiteralLexer.tokens \
@@ -381,7 +378,7 @@ class SbnfParser(Parser):
                 if isinstance(param, Nonterminal):
                     rule_context[param.symbol] = arg
             if match:
-                return rule_context, rule
+                return rule, rule_context
         raise ValueError(f'No matching rule found for {name}, {args}')
 
     def make_actualized_rules(self, context):
@@ -393,7 +390,7 @@ class SbnfParser(Parser):
                 if (name, args) in actual_rules:
                     continue
 
-                rule_context, rule = self.find_matching_rule(name, args)
+                rule, rule_context = self.find_matching_rule(name, args)
                 new_context = {**context, **rule_context}
                 actual_rules[(name, args)] = rule(**new_context)
         return actual_rules
