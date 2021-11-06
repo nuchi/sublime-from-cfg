@@ -189,7 +189,7 @@ class SublimeSyntax:
             if not terminal.passive:
                 matches.append({'include': 'fail!'})
             self._terminals[terminal] = (
-                f'T.{len(self._terminals)}',
+                terminal.name,
                 matches
             )
         return self._terminals[terminal]

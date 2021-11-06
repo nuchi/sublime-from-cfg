@@ -8,12 +8,36 @@ from typing import Optional, Union
 from sly import Lexer, Parser
 
 from bnf import (
+    Expression,
     Terminal,
     Nonterminal,
     Alternation,
     Concatenation,
     NonLeftRecursiveGrammar,
 )
+
+
+@dataclass(frozen=True)
+class Repetition(Expression):
+    sub: Expression
+
+    @property
+    def _name(self):
+        return '/*'
+
+
+@dataclass(frozen=True)
+class OptionalExpr(Expression):
+    sub: Expression
+
+    @property
+    def _name(self):
+        return '/opt'
+
+
+@dataclass(frozen=True)
+class Passive(Expression):
+    sub: Expression
 
 
 class SbnfLexer(Lexer):
@@ -260,40 +284,43 @@ class SbnfParser(Parser):
         return lambda **context: Concatenation([])
 
     # Restore this when passives are implemented for things other than terminals
-    # @_('[ PASSIVE ] pattern_item [ star_or_question ]')
-    @_('pattern_item [ star_or_question ]')
+    # @_('pattern_item [ star_or_question ]')
+    @_('[ PASSIVE ] pattern_item [ star_or_question ]')
     def pattern_element(self, p):
-        # if p.PASSIVE is not None:
-        #     raise NotImplementedError('Passive (~) not yet supported.')
         pattern_item = p.pattern_item
-        return lambda **context: pattern_item(**context)
+        ret = lambda **context: pattern_item(**context)
+
+        if p.star_or_question is not None:
+            op = Repetition if p.star_or_question == '*' else OptionalExpr
+            ret = partial((lambda r, **context: op(r(**context))), ret)
+
+        if p.PASSIVE is not None:
+            ret = partial((lambda r, **context: Passive(r(**context))), ret)
+
+        return ret
 
     @_('STAR', 'QUESTION')
     def star_or_question(self, p):
-        raise NotImplementedError(f'{p[0]} not yet supported.')
+        # print(p[0])
+        # raise NotImplementedError(f'{p[0]} not yet supported.')
         return p[0]
 
-    @_('[ PASSIVE ] literal_or_regex [ options ] [ embed_include ]')
+    @_('literal_or_regex [ options ] [ embed_include ]')
     def pattern_item(self, p):
         lit_or_reg = p.literal_or_regex
         options = (lambda **context: None) if p.options is None else p.options
-        is_passive = bool(p.PASSIVE is not None)
         return lambda **context: Terminal(
             lit_or_reg(**context),
             options(**context),
-            passive=is_passive,
         )
 
-    @_('[ PASSIVE ] LPAR alternates RPAR')
+    @_('LPAR alternates RPAR')
     def pattern_item(self, p):
-        raise NotImplementedError(
-            f'Line {p._slice[0].lineno}: Parentheses in rules not supported yet.')
-        return p.alternates
+        alternates = p.alternates
+        return lambda **context: Alternation(alternates(**context))
 
-    @_('[ PASSIVE ] IDENT [ arguments ]')
+    @_('IDENT [ arguments ]')
     def pattern_item(self, p):
-        if p.PASSIVE is not None:
-            raise NotImplementedError('Passives (~) only supported for terminals.')
         arguments = p.arguments or (lambda **context: [])
         IDENT = p.IDENT
         def make_symbol(i, **context):
@@ -310,17 +337,16 @@ class SbnfParser(Parser):
             return nt
         return partial(make_symbol, IDENT)
 
-    @_('[ PASSIVE ] U_IDENT [ options ]')
+    @_('U_IDENT [ options ]')
     def pattern_item(self, p):
         U_IDENT = p.U_IDENT
         options = p.options or (lambda **context: None)
-        is_passive = bool(p.PASSIVE is not None)
         def expand_u_ident(**context):
             if U_IDENT in self.variables:
                 regex = self.variables[U_IDENT]()
             else:
                 regex = context[U_IDENT].regex
-            return Terminal(regex, options(**context), is_passive)
+            return Terminal(regex, options(**context))
         return expand_u_ident
 
 
@@ -399,7 +425,3 @@ class SbnfParser(Parser):
         lexer = SbnfLexer()
         self.parse(lexer.tokenize(text))
         self.actual_rules = self.make_actualized_rules({})
-        self.grammar = NonLeftRecursiveGrammar({
-            Nonterminal(*k): v
-            for k, v in self.actual_rules.items()
-        }, start=Nonterminal('main'))

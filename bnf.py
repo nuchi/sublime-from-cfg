@@ -5,7 +5,15 @@ from hashlib import sha256
 from typing import Optional, Union
 
 
-class Symbol:
+class Expression:
+    @property
+    def name(self):
+        self_hash = sha256(
+            repr(self).encode('utf8')).hexdigest()[:7]
+        return f'{self._name}/{self_hash}'
+
+
+class Symbol(Expression):
     pass
 
 
@@ -20,6 +28,10 @@ class Terminal(Symbol):
             + (f"'{self.regex}'") \
             + (f'{{{self.scope}}}' if self.scope else '')
 
+    @property
+    def _name(self):
+        return '/T'
+
 
 @dataclass(frozen=True)
 class Nonterminal(Symbol):
@@ -32,16 +44,18 @@ class Nonterminal(Symbol):
             if self.symbol == 'main':
                 return 'main/'
             return self.symbol
-        args_hash = sha256(
-            repr(self.args).encode('utf8')).hexdigest()[:7]
-        return f'{self.symbol}/{args_hash}'
+        return super().name
+
+    @property
+    def _name(self):
+        return self.symbol
 
     def __str__(self):
         return self.name
 
 
-@dataclass
-class Concatenation:
+@dataclass(frozen=True)
+class Concatenation(Expression):
     concats: list[Symbol]
 
     def __str__(self):
@@ -49,16 +63,25 @@ class Concatenation:
             return '<empty>'
         return ' '.join([str(sub) for sub in self.concats])
 
+    @property
+    def _name(self):
+        return '/cat'
+
+
 EMPTY = Concatenation([])
 
 
-@dataclass
-class Alternation:
+@dataclass(frozen=True)
+class Alternation(Expression):
     productions: list[Concatenation]
     meta_scope: Optional[str] = None
 
     def __str__(self):
         return '\n    | '.join([str(sub) for sub in self.productions])
+
+    @property
+    def _name(self):
+        return '/alt'
 
 
 class NonLeftRecursiveGrammar:
