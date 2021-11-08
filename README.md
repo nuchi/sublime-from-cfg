@@ -14,10 +14,35 @@ Sublime syntax files allow one to define _contexts_; within each context one can
 
 See [the Wikipedia page on LL parsers](https://en.wikipedia.org/wiki/LL_parser) for more details on how LL parsers work in general. What I do here is always indicate "success" by `pop: 2`; i.e. popping twice out of the current context, and failure by `pop: 1`. Contexts for a given production are pushed onto the stack interleaved by a `pop2!` context which always pops 2 contexts off the stack. Therefore a failure, which pops once, moves into the "always pop 2" stream until it hits a failure context (to backtrack and try a different branch) or pops all the way out of the current stack.
 
+## Related
+
+This project shares the goal of automatically generating a Sublime-syntax file with [Benjamin Schaaf's sbnf project](https://github.com/BenjaminSchaaf/sbnf/). While I started working on this idea before learning about the existence of sbnf, I took a lot of inspiration from that project. In particular the idea of using the extended BNF syntax (allowing `*`, `?`, parenthesized expressions) and passive expressions. More generally, I'm using the exact same `.sbnf` file format as my input. The implementations here are all my own.
+
+### Differences between this project and sbnf
+
+[One of sbnf's goals](https://crates.io/crates/sbnf) is to "Compile to an efficient syntax, comparable to hand-made ones". That is not a goal of this project. There are some things that I do inefficiently that I don't plan to change. For example, sometimes I push contexts onto the stack which do nothing and immediately pop out. It's easier to have my implementation generate this than to special-case it and optimize it away.
+
+Regarding features, while there are some features that sbnf has that I don't yet implement, there are also some implementation details that I don't plan to change, that will make some things not portable between the two projects. I list these below.
+
+#### `prototype`
+
+I implement a "prototype" feature (i.e. a rule that gets automatically included everywhere) but I _don't_ use Sublime Text's native prototype feature to do that. Instead, I inject the `prototype` rule explicitly between every pair of symbols. The practical difference is that you'll have to slightly change your prototype definitions. For example:
+```diff
+- prototype : ( ~comment )* ;
++ prototype : comment* ;
+  comment{comment.line.number-sign} : '#+'{punctuation.definition.comment}
+                                      ~'$\n?'
+                                    ;
+
+```
+Note that the `~` symbol should no longer be included.
+
+#### `main` is not implicitly repeated
+
+In sbnf, the rule `main : 'a' ;` will match any number of repeated `a` characters. In sublime-from-cfg, only one `a` will be matched.
+
 ## TO-DO:
 
-- [ ] Detect whether the input grammar is follow-determined. This may be undecidable for all I know.
-- [ ] Automatically rewrite rules involving left recursion
 - Accept a convenient text description of a grammar rather than require constructing a Python object by hand. [Benjamin Schaaf's sbnf](https://github.com/BenjaminSchaaf/sbnf/) is a project with essentially the same goals as this one, and has a very nice syntax for defining grammars so it'd be nice to allow inputs in that format.
     - [x] Parse the sbnf file format
     - [x] Handle variables and rules
@@ -28,3 +53,5 @@ See [the Wikipedia page on LL parsers](https://en.wikipedia.org/wiki/LL_parser) 
     - [x] Handle `prototype`
     - [ ] Handle `%embed` and `%include`
     - [ ] Handle global parameters
+- [ ] Detect whether the input grammar is follow-determined. This may be undecidable for all I know.
+- [ ] Automatically rewrite rules involving left recursion
