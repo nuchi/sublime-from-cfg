@@ -1,4 +1,5 @@
 from collections import defaultdict
+from contextlib import contextmanager
 from dataclasses import dataclass
 import functools
 from hashlib import sha256
@@ -96,7 +97,7 @@ class NonLeftRecursiveGrammar:
             for symbol in concatenation.concats
             if isinstance(symbol, Terminal)
         ])
-        self.recursion_guard = set()
+        self._recursion_guard_list = []
         self.first = {nt: self._get_first_sets(nt) for nt in rules}
         self.follow = self._generate_follow_sets()
         self.table = {
@@ -127,8 +128,9 @@ class NonLeftRecursiveGrammar:
         symbols = symbols[:]
         first_set = set()
         possible_empty = True
-        while symbols:
-            next_first_sets = self._get_first_sets(symbols.pop(0))
+        while len(symbols) > 0:
+            next_symbol = symbols.pop(0)
+            next_first_sets = self._get_first_sets(next_symbol)
             next_first_set = set.union(*next_first_sets)
             first_set.update(next_first_set)
             if None not in first_set:
@@ -136,32 +138,39 @@ class NonLeftRecursiveGrammar:
                 break
         if possible_empty:
             first_set.add(None)
+
         return first_set
+
+    @contextmanager
+    def _recursion_guard(self, symbol):
+        if symbol in self._recursion_guard_list:
+            recursed_symbols = ", ".join([repr(t) for t in self._recursion_guard_list])
+            raise ValueError(f'Left recursion detected on {repr(symbol)}: {recursed_symbols}')
+        try:
+            self._recursion_guard_list.append(symbol)
+            yield
+        finally:
+            self._recursion_guard_list = [t for t in self._recursion_guard_list if t != symbol]
 
     @functools.lru_cache()
     def _get_first_sets(self, symbol):
-        if symbol in self.recursion_guard:
-            recursed_symbols = ", ".join([t.name for t in self.recursion_guard])
-            raise ValueError(f'Left recursion detected: {recursed_symbols}')
-        self.recursion_guard.add(symbol)
+        with self._recursion_guard(symbol):
+            if isinstance(symbol, Terminal):
+                return [set([Terminal(symbol.regex, passive=symbol.passive)])]
 
-        if isinstance(symbol, Terminal):
-            return [set([Terminal(symbol.regex, passive=symbol.passive)])]
+            if symbol.passive:
+                non_passive_nt = Nonterminal(symbol.symbol, symbol.args, False)
+                first_sets = self._get_first_sets(non_passive_nt)
+                first_set = set.union(*first_sets)
+                first_set.add(Terminal(r'\S', passive=True))
+                return [first_set]
 
-        if symbol.passive:
-            non_passive_nt = Nonterminal(symbol.symbol, symbol.args, False)
-            first_sets = self._get_first_sets(non_passive_nt)
-            first_set = set.union(*first_sets)
-            first_set.add(Terminal(r'\S', passive=True))
-            return [first_set]
+            first_sets = [
+                self._get_first_set_for_string(production.concats)
+                for production in self.rules[symbol].productions
+            ]
 
-        first_sets = [
-            self._get_first_set_for_string(production.concats)
-            for production in self.rules[symbol].productions
-        ]
-
-        self.recursion_guard.discard(symbol)
-        return first_sets
+            return first_sets
 
     def _generate_follow_sets(self):
         follow_sets = {nt: set() for nt in self.rules}
