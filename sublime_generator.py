@@ -96,12 +96,6 @@ class SublimeSyntax:
                     self.contexts[self._get_passive_skip_context_name(symbol)] = \
                         self._make_passive_skip_context(symbol, grammar.table[non_passive_nt])
 
-        for context in self.contexts.values():
-            for match in context:
-                for key, value in match.items():
-                    if key in ('scope', 'meta_scope'):
-                        match[key] = f'{value}.{scope}'
-
     def dump(self):
         return yaml.round_trip_dump({
             'version': 2,
@@ -128,7 +122,7 @@ class SublimeSyntax:
                 {'match': '', 'set': ([nt_meta_name, 'pop2!', nt_context_name])},
             ]
             contexts[nt_meta_name] = [
-                {'meta_scope': alternation.meta_scope},
+                {'meta_scope': f'{alternation.meta_scope}.{self.scope}'},
                 {'match': '', 'pop': 2},
             ]
         else:
@@ -201,8 +195,13 @@ class SublimeSyntax:
     def _get_terminal_context(self, terminal):
         if terminal not in self._terminals:
             match = {'match': terminal.regex, 'pop': 2}
-            if terminal.scope is not None:
-                match['scope'] = terminal.scope
+            if terminal.scope:
+                match['scope'] = ' '.join([f'{s}.{self.scope}' for s in terminal.scope])
+            if terminal.captures:
+                match['captures'] = {
+                    k: f'{v}.{self.scope}'
+                    for k, v in terminal.captures.items()
+                }
             matches = [match]
             if not terminal.passive:
                 matches.append({'include': 'fail!'})

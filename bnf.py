@@ -21,7 +21,7 @@ class Symbol(Expression):
 @dataclass(frozen=True)
 class Terminal(Symbol):
     regex: str
-    scope: Optional[str] = None
+    options: Optional[str] = None
     passive: bool = False
 
     def __str__(self):
@@ -32,6 +32,26 @@ class Terminal(Symbol):
     @property
     def _name(self):
         return '/T'
+
+    @property
+    def _options_list(self):
+        if self.options is None:
+            return []
+        return [o.strip() for o in self.options.split(',')]
+
+    @property
+    def captures(self):
+        ret = {}
+        for kv in self._options_list:
+            if ':' not in kv:
+                continue
+            k, v = kv.split(':', 1)
+            ret[int(k.strip())] = v.strip()
+        return ret
+
+    @property
+    def scope(self):
+        return [o for o in self._options_list if ':' not in o]
 
 
 @dataclass(frozen=True)

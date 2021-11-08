@@ -127,7 +127,7 @@ def process_passive(item, to_do):
         return process_passive(item.sub, to_do)
 
     if isinstance(item, Terminal):
-        return Terminal(item.regex, item.scope, True)
+        return Terminal(item.regex, item.options, True)
 
     if isinstance(item, Nonterminal):
         if item.passive:

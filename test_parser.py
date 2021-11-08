@@ -20,7 +20,7 @@ ca-or-cb : ca
          | cb
          ;
 
-ca{variable.function}  : 'c'{ac} 'a' ;
+ca{variable.function}  : 'c'{ac} '(x)(y)(z)'{1: region.redish, 2: region.bluish, 3: region.greenish} ;
 cb{variable.parameter} : 'c'{bc} 'b' ;
 """
 
