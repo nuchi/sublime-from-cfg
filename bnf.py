@@ -136,6 +136,7 @@ class NonLeftRecursiveGrammar:
             if None not in first_set:
                 possible_empty = False
                 break
+            first_set.discard(None)
         if possible_empty:
             first_set.add(None)
 
