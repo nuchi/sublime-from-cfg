@@ -2,39 +2,26 @@ from parse_sbnf import SbnfParser
 from simplify_grammar import simplify_grammar
 from sublime_generator import SublimeSyntax
 
-# text = """
-# main : <>  # sbnf syntax extension: <> is the empty production
-#      | line main
-#      ;
-
-# line : xs ca-or-cb
-#      | string
-#      ;
-
-# string{string.quoted} :
-#     `"`{punctuation.definition.string.begin}
-#     ~`"`{punctuation.definition.string.end}
-#     ;
-
-# xs : 'x'{keyword.operator}
-#    | ~'x'{entity.name} xs
-#    ;
-
-# ca-or-cb : ca
-#          | cb
-#          ;
-
-# ca{variable.function}  : 'c'{ac} 'a' ;
-# cb{variable.parameter} : 'c'{bc} 'b' ;
-# """
-
 text = """
-main :  `d`? xxxx* (`e` | `f`);
+main : line* ;
 
-xxxx : `a`{keyword.operator}
-     | `b`{variable.function}
-     | `c`{variable.parameter}
+line : xs ca-or-cb
+     | string
      ;
+
+string{string.quoted} :
+    `"`{punctuation.definition.string.begin}
+    ~`"`{punctuation.definition.string.end}
+    ;
+
+xs : (~'x'{entity.name})* ;
+
+ca-or-cb : ca
+         | cb
+         ;
+
+ca{variable.function}  : 'c'{ac} 'a' ;
+cb{variable.parameter} : 'c'{bc} 'b' ;
 """
 
 parser = SbnfParser(text)
