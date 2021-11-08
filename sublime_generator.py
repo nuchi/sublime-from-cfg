@@ -115,15 +115,16 @@ class SublimeSyntax:
 
     def _generate_contexts_for_nt(self, nt, alternation, table, follow_set):
         contexts = {}
-        if alternation.meta_scope is not None:
+        if alternation.option_list:
             nt_context_name = f'{nt.name}"'
             nt_meta_name = f'{nt.name}"meta'
             contexts[nt.name] = [
                 {'match': '', 'set': ([nt_meta_name, 'pop2!', nt_context_name])},
             ]
             contexts[nt_meta_name] = [
-                {'meta_scope': f'{alternation.meta_scope}.{self.scope}'},
-                {'match': '', 'pop': 2},
+                {'meta_scope': ' '.join([
+                    f'{o}.{self.scope}' for o in alternation.option_list])},
+                {'match': '', 'pop': 2}
             ]
         else:
             nt_context_name = nt.name
@@ -195,12 +196,12 @@ class SublimeSyntax:
     def _get_terminal_context(self, terminal):
         if terminal not in self._terminals:
             match = {'match': terminal.regex, 'pop': 2}
-            if terminal.scope:
-                match['scope'] = ' '.join([f'{s}.{self.scope}' for s in terminal.scope])
-            if terminal.captures:
+            if terminal.option_list:
+                match['scope'] = ' '.join([f'{s}.{self.scope}' for s in terminal.option_list])
+            if terminal.option_kv:
                 match['captures'] = {
-                    k: f'{v}.{self.scope}'
-                    for k, v in terminal.captures.items()
+                    int(k): f'{v}.{self.scope}'
+                    for k, v in terminal.option_kv.items()
                 }
             matches = [match]
             if not terminal.passive:

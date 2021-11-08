@@ -44,7 +44,13 @@ class Passive(Expression):
         return '/~'
 
 
-class SbnfLexer(Lexer):
+class _PrintLineNumber:
+    def error(self, t):
+        print(f'Error at line {t.lineno}')
+        return super().error(t)
+
+
+class SbnfLexer(_PrintLineNumber, Lexer):
     tokens = {
         'EMBED',
         'INCLUDE',
@@ -119,17 +125,21 @@ class SbnfLexer(Lexer):
         return t
 
 
-class LiteralLexer(Lexer):
+class LiteralLexer(_PrintLineNumber, Lexer):
     tokens = { 'LITERAL', 'BTICK' }
     BTICK = '`'
     LITERAL = r'[^`]+'
+
+    def LITERAL(self, t):
+        self.lineno += t.value.count('\n')
+        return t
 
     def BTICK(self, t):
         self.pop_state()
         return t
 
 
-class RegexLexer(Lexer):
+class RegexLexer(_PrintLineNumber, Lexer):
     tokens = { 'REGEX', 'QUOTE' }
     REGEX = r"(\\.|[^'])+"
     QUOTE = "'"
@@ -146,6 +156,7 @@ class RegexLexer(Lexer):
             repl,
             t.value.replace('{', '{{').replace('}', '}}'),
         )
+        self.lineno += t.value.count('\n')
         return t
 
     def QUOTE(self, t):
@@ -153,7 +164,7 @@ class RegexLexer(Lexer):
         return t
 
 
-class OptionsLexer(Lexer):
+class OptionsLexer(_PrintLineNumber, Lexer):
     tokens = { 'OPTIONS', 'RBRACE' }
     OPTIONS = r'[^}]+'
     RBRACE = '}'
@@ -170,6 +181,7 @@ class OptionsLexer(Lexer):
             repl,
             t.value.replace('{', '{{').replace('}', '}}'),
         )
+        self.lineno += t.value.count('\n')
         return t
 
     def RBRACE(self, t):

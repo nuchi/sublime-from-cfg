@@ -27,7 +27,7 @@ def simplify_grammar(grammar):
                 ])
                 for production in alternation.productions
             ],
-            meta_scope=alternation.meta_scope,
+            options=alternation.options,
         )
 
     return NonLeftRecursiveGrammar(
@@ -88,7 +88,7 @@ def process_repetition(item, to_do):
 
     if isinstance(item, (Terminal, Nonterminal, Alternation, Passive)):
         repetition_nt = Nonterminal(f'/*{item.name}')
-        new_rule = Alternation([Concatenation([]), Concatenation([item, repetition_nt])])
+        new_rule = Alternation([Concatenation([item, repetition_nt]), Concatenation([])])
         to_do.append((repetition_nt, new_rule))
         return repetition_nt
 
@@ -102,19 +102,19 @@ def process_optional(item, to_do):
         return process_repetition(item.sub, to_do)
 
     if isinstance(item, Passive):
-        processed_subitem = process_passive(item.sub)
-        return process_optional(processed_subitem)
+        processed_subitem = process_passive(item.sub, to_do)
+        return process_optional(processed_subitem, to_do)
 
     if isinstance(item, (Terminal, Nonterminal)):
         opt_nt = Nonterminal(f'/opt/{item.name}')
-        new_rule = Alternation([Concatenation([]), Concatenation([item])])
+        new_rule = Alternation([Concatenation([item]), Concatenation([])])
         to_do.append((opt_nt, new_rule))
         return opt_nt
 
     if isinstance(item, Alternation):
         if any(len(prod.concats) == 0 for prod in item.productions):
             return process_alternation(item, to_do)
-        new_alt = Alternation([Concatenation([])] + item.concats, item.meta_scope)
+        new_alt = Alternation(item.concats + [Concatenation([])], item.options)
         return process_item(new_alt, to_do)
 
 

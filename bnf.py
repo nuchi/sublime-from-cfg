@@ -18,8 +18,30 @@ class Symbol(Expression):
     pass
 
 
+class OptionsHaver:
+    @property
+    def _options_list(self):
+        if self.options is None:
+            return []
+        return [o.strip() for o in self.options.split(',')]
+
+    @property
+    def option_kv(self):
+        ret = {}
+        for kv in self._options_list:
+            if ':' not in kv:
+                continue
+            k, v = kv.split(':', 1)
+            ret[k.strip()] = v.strip()
+        return ret
+
+    @property
+    def option_list(self):
+        return [o for o in self._options_list if ':' not in o]
+
+
 @dataclass(frozen=True)
-class Terminal(Symbol):
+class Terminal(Symbol, OptionsHaver):
     regex: str
     options: Optional[str] = None
     passive: bool = False
@@ -32,26 +54,6 @@ class Terminal(Symbol):
     @property
     def _name(self):
         return '/T'
-
-    @property
-    def _options_list(self):
-        if self.options is None:
-            return []
-        return [o.strip() for o in self.options.split(',')]
-
-    @property
-    def captures(self):
-        ret = {}
-        for kv in self._options_list:
-            if ':' not in kv:
-                continue
-            k, v = kv.split(':', 1)
-            ret[int(k.strip())] = v.strip()
-        return ret
-
-    @property
-    def scope(self):
-        return [o for o in self._options_list if ':' not in o]
 
 
 @dataclass(frozen=True)
@@ -94,9 +96,9 @@ EMPTY = Concatenation([])
 
 
 @dataclass(frozen=True)
-class Alternation(Expression):
+class Alternation(Expression, OptionsHaver):
     productions: list[Concatenation]
-    meta_scope: Optional[str] = None
+    options: Optional[str] = None
 
     def __str__(self):
         return '\n    | '.join([str(sub) for sub in self.productions])
