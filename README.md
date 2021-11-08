@@ -24,7 +24,7 @@ See [the Wikipedia page on LL parsers](https://en.wikipedia.org/wiki/LL_parser) 
     - [x] Handle parameters
     - [x] Handle `*`, `?`, `~`, and `( ... )`
     - [x] Handle options for scope, meta_scope
-    - [ ] Handle options for include-prototype, captures
-    - [ ] Handle `prototype`
+    - [x] Handle options for include-prototype, captures
+    - [x] Handle `prototype`
     - [ ] Handle `%embed` and `%include`
     - [ ] Handle global parameters

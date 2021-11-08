@@ -199,9 +199,7 @@ class SbnfParser(Parser):
         self.variables = {}
         self.to_do = set()
         self.zero_arg_rules = {}
-        self.actual_rules = {}
         self.parameterized_rules = {}
-
         self.make_grammar(text)
 
     @_('{ parameters } { variable|rule }')
@@ -228,8 +226,6 @@ class SbnfParser(Parser):
 
     @_('IDENT [ parameters ] [ options ] RULE_DEF alternates RULE_END')
     def rule(self, p):
-        if p.IDENT == 'prototype':
-            raise NotImplementedError('prototype rule not yet supported.')
         alternates = p.alternates
         options = (lambda **context: None) if p.options is None else p.options
         parameters = (lambda **context: tuple()) if p.parameters is None else p.parameters
@@ -423,8 +419,8 @@ class SbnfParser(Parser):
                 return rule, rule_context
         raise ValueError(f'No matching rule found for {name}, {args}')
 
-    def make_actualized_rules(self, context):
-        self.to_do.add(Nonterminal('main'))
+    def make_actualized_rules(self, start, context):
+        self.to_do.add(start)
         actual_rules = {}
         while self.to_do:
             to_do, self.to_do = self.to_do, set()
@@ -441,4 +437,13 @@ class SbnfParser(Parser):
     def make_grammar(self, text):
         lexer = SbnfLexer()
         self.parse(lexer.tokenize(text))
-        self.actual_rules = self.make_actualized_rules({})
+        self.main_rules = self.make_actualized_rules(Nonterminal('main'), {})
+        if ('prototype', tuple()) in self.parameterized_rules:
+            self.proto_rules = self.make_actualized_rules(Nonterminal('prototype'), {})
+        else:
+            self.proto_rules = {}
+        self.actual_rules = {
+            'main': self.main_rules,
+            'prototype': self.proto_rules,
+        }
+

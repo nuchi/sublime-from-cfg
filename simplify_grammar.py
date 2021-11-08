@@ -2,37 +2,22 @@ from functools import wraps
 
 from bnf import (
     Terminal, Nonterminal, Concatenation, Alternation,
-    NonLeftRecursiveGrammar,
 )
 from parse_sbnf import (
     Repetition, OptionalExpr, Passive
 )
 
 
-def simplify_grammar(grammar):
-    """
-    Can be an "ebnf" grammar, where the alternates are still
-    concatenations but the individual symbols might be Optionals
-    or Repetitions or Passives or entire subexpressions.
-    """
-    generated_rules = {}
-    to_do = list(grammar.items())
-    while to_do:
-        nt, alternation = to_do.pop(0)
-        generated_rules[nt] = Alternation(
-            productions=[
-                Concatenation([
-                    process_item(concat, to_do)
-                    for concat in production.concats
-                ])
-                for production in alternation.productions
-            ],
-            options=alternation.options,
-        )
-
-    return NonLeftRecursiveGrammar(
-        generated_rules,
-        start=Nonterminal('main')
+def process_alternation_items(nt, alt, to_do):
+    return Alternation(
+        productions=[
+            Concatenation([
+                process_item(concat, to_do)
+                for concat in production.concats
+            ])
+            for production in alt.productions
+        ],
+        options=alt.options,
     )
 
 
