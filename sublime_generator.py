@@ -86,6 +86,16 @@ class SublimeSyntax:
         for name, context in self._terminals.values():
             self.contexts[name] = context
 
+        for alternation in grammar.rules.values():
+            for production in alternation.productions:
+                for symbol in production.concats:
+                    if not (isinstance(symbol, Nonterminal) and symbol.passive):
+                        continue
+
+                    non_passive_nt = Nonterminal(symbol.symbol, symbol.args, passive=False)
+                    self.contexts[self._get_passive_skip_context_name(symbol)] = \
+                        self._make_passive_skip_context(symbol, grammar.table[non_passive_nt])
+
         for context in self.contexts.values():
             for match in context:
                 for key, value in match.items():
@@ -100,6 +110,14 @@ class SublimeSyntax:
             'scope': f'source.{self.scope}',
             'contexts': self.contexts,
         }, version='1.2')
+
+    def _make_passive_skip_context(self, nt, table):
+        matches = [
+            {'match': f'(?={t})', 'pop': 2}
+            for t in table
+            if t != r'\S'
+        ]
+        return matches
 
     def _generate_contexts_for_nt(self, nt, alternation, table, follow_set):
         contexts = {}
@@ -196,17 +214,25 @@ class SublimeSyntax:
 
     def _get_symbol_context_name(self, symbol):
         if isinstance(symbol, Nonterminal):
+            symbol = Nonterminal(symbol.symbol, symbol.args, passive=False)
             return symbol.name
         name, _ = self._get_terminal_context(symbol)
         return name
 
+    def _get_passive_skip_context_name(self, symbol):
+        return f'{symbol.name}/skip!'
+
     def _production_stack(self, production):
         if len(production.concats) == 0:
             return ['pop2!']
-        production_stack = [
-            self._get_symbol_context_name(production.concats[-1])
-        ]
-        for symbol in production.concats[:-1][::-1]:
-            production_stack.append('pop2!')
+
+        production_stack = []
+        for symbol in production.concats[::-1]:
             production_stack.append(self._get_symbol_context_name(symbol))
-        return production_stack
+            production_stack.append('pop2!')
+            if isinstance(symbol, Nonterminal) and symbol.passive:
+                production_stack.append(self._get_passive_skip_context_name(symbol))
+                production_stack.append('pop2!')
+
+        # Don't include the last 'pop2!'
+        return production_stack[:-1]

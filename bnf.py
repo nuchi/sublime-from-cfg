@@ -37,12 +37,13 @@ class Terminal(Symbol):
 class Nonterminal(Symbol):
     symbol: str
     args: tuple[Union['Nonterminal', str]] = tuple()
+    passive: bool = False
 
     @property
     def name(self):
-        if len(self.args) == 0:
-            if self.symbol == 'main':
-                return 'main/'
+        if len(self.args) == 0 and not self.passive:
+            if self.symbol in ('main', 'prototype'):
+                return f'{self.symbol}/'
             return self.symbol
         return super().name
 
@@ -146,6 +147,13 @@ class NonLeftRecursiveGrammar:
 
         if isinstance(symbol, Terminal):
             return [set([Terminal(symbol.regex, passive=symbol.passive)])]
+
+        if symbol.passive:
+            non_passive_nt = Nonterminal(symbol.symbol, symbol.args, False)
+            first_sets = self._get_first_sets(non_passive_nt)
+            first_set = set.union(*first_sets)
+            first_set.add(Terminal(r'\S', passive=True))
+            return [first_set]
 
         first_sets = [
             self._get_first_set_for_string(production.concats)

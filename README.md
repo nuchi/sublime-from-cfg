@@ -22,11 +22,9 @@ See [the Wikipedia page on LL parsers](https://en.wikipedia.org/wiki/LL_parser) 
     - [x] Parse the sbnf file format
     - [x] Handle variables and rules
     - [x] Handle parameters
+    - [x] Handle `*`, `?`, `~`, and `( ... )`
     - [x] Handle options for scope, meta_scope
     - [ ] Handle options for include-prototype, captures
     - [ ] Handle `prototype`
     - [ ] Handle `%embed` and `%include`
-    - [x] Handle `*`, `?`, and parenthesized expressions
-    - [x] Handle passive terminals
-    - [ ] Handle passive expressions
     - [ ] Handle global parameters

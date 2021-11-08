@@ -39,6 +39,10 @@ class OptionalExpr(Expression):
 class Passive(Expression):
     sub: Expression
 
+    @property
+    def _name(self):
+        return '/~'
+
 
 class SbnfLexer(Lexer):
     tokens = {
