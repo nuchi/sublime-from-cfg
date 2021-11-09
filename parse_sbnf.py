@@ -149,6 +149,8 @@ class RegexLexer(_PrintLineNumber, Lexer):
         def repl(m):
             a, b = m.groups()
             if a is not None:
+                if a == r'\'':
+                    return "'"
                 return a
             return f'{{{b}}}'
         t.value = re.sub(
@@ -313,18 +315,32 @@ class SbnfParser(Parser):
 
     @_('STAR', 'QUESTION')
     def star_or_question(self, p):
-        # print(p[0])
-        # raise NotImplementedError(f'{p[0]} not yet supported.')
         return p[0]
 
     @_('literal_or_regex [ options ] [ embed_include ]')
     def pattern_item(self, p):
         lit_or_reg = p.literal_or_regex
         options = (lambda **context: None) if p.options is None else p.options
-        return lambda **context: Terminal(
-            lit_or_reg(**context),
-            options(**context),
-        )
+        embed_include = p.embed_include
+        if embed_include is not None:
+            ei, ei_args, ei_options = p.embed_include
+            ei_kwarg = lambda **context: {ei: (tuple(ei_args(**context)), ei_options(**context))}
+        else:
+            ei_kwarg = lambda **context: {}
+        def make_terminal(**context):
+            regex = lit_or_reg(**context)
+            options_ = options(**context)
+            ei_kwarg_ = ei_kwarg(**context)
+            if ei_kwarg:
+                if 'include' in ei_kwarg_:
+                    new_nt = ei_kwarg_['include'][0][0]
+                    self.to_do.add(new_nt)
+            return Terminal(
+                regex,
+                options_,
+                **ei_kwarg_
+            )
+        return make_terminal
 
     @_('LPAR alternates RPAR')
     def pattern_item(self, p):
@@ -369,8 +385,6 @@ class SbnfParser(Parser):
 
     @_('PERC embed_or_include_token arguments options')
     def embed_include(self, p):
-        raise NotImplementedError(
-            f'Line {p._slice[0].lineno}: {p[1]} not supported yet.')
         return (p.embed_or_include_token, p.arguments, p.options)
 
     @_('EMBED', 'INCLUDE')

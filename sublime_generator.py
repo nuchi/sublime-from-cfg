@@ -195,17 +195,39 @@ class SublimeSyntax:
 
     def _get_terminal_context(self, terminal):
         if terminal not in self._terminals:
-            match = {'match': terminal.regex, 'pop': 2}
+            # Do this for all terminals
+            match = {'match': terminal.regex}
+
+            # scope?
             if terminal.option_list:
                 match['scope'] = ' '.join([f'{s}.{self.scope}' for s in terminal.option_list])
+
+            # captures?
             if terminal.option_kv:
                 match['captures'] = {
                     int(k): f'{v}.{self.scope}'
                     for k, v in terminal.option_kv.items()
                 }
+
+            # embed or include or neither
+            if terminal.include:
+                args, options = terminal.include
+                include_symbol = self._get_symbol_context_name(args[0])
+                match['set'] = options
+                match['with_prototype'] = [{'include': include_symbol}]
+            # elif terminal.embed:
+            #     # todo
+            #     print('embed terminal')
+            else:
+                # regular terminal
+                match['pop'] = 2
+
             matches = [match]
+
+            # passive?
             if not terminal.passive:
                 matches.append({'include': 'fail!'})
+
             self._terminals[terminal] = (
                 terminal.name,
                 matches

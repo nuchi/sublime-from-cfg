@@ -45,6 +45,8 @@ class Terminal(Symbol, OptionsHaver):
     regex: str
     options: Optional[str] = None
     passive: bool = False
+    embed: tuple[str, str] = None
+    include: tuple[str, str] = None
 
     def __str__(self):
         return ('~' if self.passive else '') \

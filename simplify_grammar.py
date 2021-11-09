@@ -7,12 +7,15 @@ from parse_sbnf import (
     Repetition, OptionalExpr, Passive
 )
 
+NO_PROTO = 'include-prototype: false'
+
 
 def process_alternation_items(nt, alt, to_do):
+    proto = alt.option_kv.get('include-prototype') != 'false'
     return Alternation(
         productions=[
             Concatenation([
-                process_item(concat, to_do)
+                process_item(concat, to_do, proto)
                 for concat in production.concats
             ])
             for production in alt.productions
@@ -29,7 +32,7 @@ def unwrap_alternation(alt):
 
 def check_type(f):
     @wraps(f)
-    def new_f(item, to_do):
+    def new_f(item, to_do, proto):
         if isinstance(item, Alternation):
             item = unwrap_alternation(item)
 
@@ -37,82 +40,88 @@ def check_type(f):
             (Terminal, Nonterminal, Passive, Repetition, OptionalExpr, Alternation)
         ):
             raise ValueError(f'Bad type for {repr(item)}')
-        return f(item, to_do)
+        return f(item, to_do, proto)
     return new_f
 
 
 @check_type
-def process_item(item, to_do):
+def process_item(item, to_do, proto):
     if isinstance(item, (Terminal, Nonterminal)):
         return item
 
     if isinstance(item, Passive):
-        return process_passive(item.sub, to_do)
+        return process_passive(item.sub, to_do, proto)
 
     if isinstance(item, Repetition):
-        return process_repetition(item.sub, to_do)
+        return process_repetition(item.sub, to_do, proto)
 
     if isinstance(item, OptionalExpr):
-        return process_optional(item.sub, to_do)
+        return process_optional(item.sub, to_do, proto)
 
     if isinstance(item, Alternation):
-        return process_alternation(item, to_do)
+        return process_alternation(item, to_do, proto)
 
 
 @check_type
-def process_alternation(item, to_do):
+def process_alternation(item, to_do, proto):
     new_nt = Nonterminal(item.name)
     to_do.append((new_nt, item))
     return new_nt
 
 
 @check_type
-def process_repetition(item, to_do):
+def process_repetition(item, to_do, proto):
     if isinstance(item, (OptionalExpr, Repetition)):
-        return process_repetition(item.sub, to_do)
+        return process_repetition(item.sub, to_do, proto)
 
     if isinstance(item, (Terminal, Nonterminal, Alternation, Passive)):
         repetition_nt = Nonterminal(f'/*{item.name}')
-        new_rule = Alternation([Concatenation([item, repetition_nt]), Concatenation([])])
+        new_rule = Alternation(
+            [Concatenation([item, repetition_nt]), Concatenation([])],
+            None if proto else NO_PROTO
+        )
         to_do.append((repetition_nt, new_rule))
         return repetition_nt
 
 
 @check_type
-def process_optional(item, to_do):
+def process_optional(item, to_do, proto):
     if isinstance(item, OptionalExpr):
-        return process_optional(item.sub, to_do)
+        return process_optional(item.sub, to_do, proto)
 
     if isinstance(item, Repetition):
-        return process_repetition(item.sub, to_do)
+        return process_repetition(item.sub, to_do, proto)
 
     if isinstance(item, Passive):
-        processed_subitem = process_passive(item.sub, to_do)
-        return process_optional(processed_subitem, to_do)
+        processed_subitem = process_passive(item.sub, to_do, proto)
+        return process_optional(processed_subitem, to_do, proto)
 
     if isinstance(item, (Terminal, Nonterminal)):
         opt_nt = Nonterminal(f'/opt/{item.name}')
-        new_rule = Alternation([Concatenation([item]), Concatenation([])])
+        new_rule = Alternation(
+            [Concatenation([item]), Concatenation([])],
+            None if proto else NO_PROTO
+        )
         to_do.append((opt_nt, new_rule))
         return opt_nt
 
     if isinstance(item, Alternation):
         if any(len(prod.concats) == 0 for prod in item.productions):
-            return process_alternation(item, to_do)
+            return process_alternation(item, to_do, proto)
         new_alt = Alternation(item.concats + [Concatenation([])], item.options)
-        return process_item(new_alt, to_do)
+        return process_item(new_alt, to_do, proto)
 
 
 @check_type
-def process_passive(item, to_do):
+def process_passive(item, to_do, proto):
     if isinstance(item, (OptionalExpr, Repetition)):
-        return process_passive(process_item(item, to_do), to_do)
+        return process_passive(process_item(item, to_do, proto), to_do, proto)
 
     if isinstance(item, Passive):
-        return process_passive(item.sub, to_do)
+        return process_passive(item.sub, to_do, proto)
 
     if isinstance(item, Terminal):
-        return Terminal(item.regex, item.options, True)
+        return Terminal(item.regex, item.options, True, embed=item.embed, include=item.include)
 
     if isinstance(item, Nonterminal):
         if item.passive:
@@ -127,4 +136,4 @@ def process_passive(item, to_do):
         )
 
     if isinstance(item, Alternation):
-        return process_passive(process_item(item, to_do), to_do)
+        return process_passive(process_item(item, to_do, proto), to_do, proto)
