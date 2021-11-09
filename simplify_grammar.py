@@ -108,7 +108,7 @@ def process_optional(item, to_do, proto):
     if isinstance(item, Alternation):
         if any(len(prod.concats) == 0 for prod in item.productions):
             return process_alternation(item, to_do, proto)
-        new_alt = Alternation(item.concats + [Concatenation([])], item.options)
+        new_alt = Alternation(item.productions + [Concatenation([])], item.options)
         return process_item(new_alt, to_do, proto)
 
 
