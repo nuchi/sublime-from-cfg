@@ -1,31 +1,27 @@
 from sublime_from_cfg import sublime_from_cfg
 
-text = """
-main : line*;
+# text = r"""
+# main : pattern ;
+# line : pattern `;` ;
+# pattern : pes (`|`{keyword.operator} pes)*;
+# pes : pe pe* ;
+# pe : pi `*`{keyword.operator}? ;
+# pi : '\w+'{variable.function} | group ;
+# group : `(` pattern `)` ;
 
-line : xs ca-or-cb
-     | string
-     ;
+# prototype : ( ~comment )* ;
 
-string{string.quoted, include-prototype: false} :
-    `"`{punctuation.definition.string.begin}
-    ~`"`{punctuation.definition.string.end}
-    ;
+# comment{comment.line.number-sign, include-prototype: false} : '#+'{punctuation.definition.comment}
+#                                     ~'$\n?'
+#                                   ;
 
-xs : <> | 'x'{entity.name} xs ;
+# """
 
-ca-or-cb : ca
-         | cb
-         ;
-
-ca{variable.function}  : 'c'{ac} 'a' ;
-cb{variable.parameter} : 'c'{bc} 'b' ;
-
-prototype : comment* ;
-comment{comment.line.number-sign} : '#+'{punctuation.definition.comment}
-                                    ~'$\n?'
-                                  ;
+text = r"""
+main : ~'a' | 'b' ;
 """
+
+
 
 ss = sublime_from_cfg(text)
 print(ss.dump())

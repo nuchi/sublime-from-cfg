@@ -31,9 +31,11 @@ def apply_prototype(nt, alt, to_do):
     new_productions = []
     for prod in alt.productions:
         new_prod = []
+        for concat in prod.concats:
+            new_prod.extend([Nonterminal('prototype'), concat])
         if nt == Nonterminal('main'):
             new_prod.append(Nonterminal('prototype'))
-        for concat in prod.concats:
-            new_prod.extend([concat, Nonterminal('prototype')])
+        # if not new_prod:
+        #     new_prod.append(Nonterminal('prototype'))
         new_productions.append(Concatenation(new_prod))
     return Alternation(new_productions, options=alt.options)

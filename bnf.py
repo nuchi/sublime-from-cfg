@@ -67,7 +67,7 @@ class Nonterminal(Symbol):
     @property
     def name(self):
         if len(self.args) == 0 and not self.passive:
-            if self.symbol in ('main', 'prototype'):
+            if self.symbol in ('main',):# 'prototype'):
                 return f'{self.symbol}/'
             return self.symbol
         return super().name
@@ -122,31 +122,35 @@ class NonLeftRecursiveGrammar:
             if isinstance(symbol, Terminal)
         ])
         self._recursion_guard_list = []
-        self.first = {nt: self._get_first_sets(nt) for nt in rules}
+        self.first = {
+            nt: self._get_first_sets(nt)
+            for nt_ in self.rules
+            for nt in (nt_, Nonterminal(nt_.symbol, nt_.args, passive=True))
+        }
         self.follow = self._generate_follow_sets()
         self.table = {
-            nt: self._generate_table(
+            nt: self._generate_tables(
                 self.first[nt],
                 self.follow[nt],
             )
-            for nt in self.rules
+            for nt_ in self.rules
+            for nt in (nt_, Nonterminal(nt_.symbol, nt_.args, passive=True))
         }
 
-    def _generate_table(self, first_sets, follow_set):
+    def _generate_tables(self, first_sets, follow_set):
         table = defaultdict(set)
-        for i, first_set in enumerate(first_sets):
+        passives_table = defaultdict(set)
+        first_plus_follow = [
+            fs if None not in fs else fs.union(follow_set).difference({None})
+            for fs in first_sets
+        ]
+        for i, first_set in enumerate(first_plus_follow):
             for s in first_set:
-                if s is not None:
-                    table[s.regex].add(i)
-                    if s.passive:
-                        table[r'\S'].add(i)
+                if s.passive:
+                    passives_table[s.regex].add(i)
                 else:
-                    for t in follow_set:
-                        if t is not None:
-                            table[t.regex].add(i)
-                            if t.passive:
-                                table[r'\S'].add(i)
-        return table
+                    table[s.regex].add(i)
+        return (table, passives_table)
 
     def _get_first_set_for_string(self, symbols):
         symbols = symbols[:]
@@ -186,9 +190,14 @@ class NonLeftRecursiveGrammar:
             if symbol.passive:
                 non_passive_nt = Nonterminal(symbol.symbol, symbol.args, False)
                 first_sets = self._get_first_sets(non_passive_nt)
-                first_set = set.union(*first_sets)
-                first_set.add(Terminal(r'\S', passive=True))
-                return [first_set]
+                first_sets = [
+                    set([
+                        None if t is None else Terminal(t.regex, passive=True)
+                        for t in fs
+                    ])
+                    for fs in first_sets
+                ]
+                return first_sets
 
             first_sets = [
                 self._get_first_set_for_string(production.concats)
@@ -198,13 +207,19 @@ class NonLeftRecursiveGrammar:
             return first_sets
 
     def _generate_follow_sets(self):
-        follow_sets = {nt: set() for nt in self.rules}
+        nonpassive_and_passive = set(self.rules)
+        for nt in self.rules:
+            passive_nt = Nonterminal(nt.symbol, nt.args, True)
+            nonpassive_and_passive.add(passive_nt)
+
+        follow_sets = {nt: set() for nt in nonpassive_and_passive}
+
         old_sum = -1
         new_sum = 0
         while old_sum != new_sum:
             old_sum = new_sum
 
-            for nt in self.rules:
+            for nt in nonpassive_and_passive:
                 follow_set = follow_sets[nt]
                 if nt == self.start:
                     follow_set.add(None)

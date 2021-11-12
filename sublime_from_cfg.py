@@ -13,7 +13,7 @@ def sublime_from_cfg(text):
 
     if proto_rules:
         transformed_main_rules = transform_grammar(
-            main_rules, (process_alternation_items, apply_prototype)
+            main_rules, (process_alternation_items,)# apply_prototype)
         )
         transformed_proto_rules = transform_grammar(
             proto_rules, (process_alternation_items,))

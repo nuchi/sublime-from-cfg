@@ -25,7 +25,12 @@ def process_alternation_items(nt, alt, to_do):
 
 
 def unwrap_alternation(alt):
-    if (not isinstance(alt, Alternation) or len(alt.productions) != 1 or len(alt.productions[0].concats) != 1):
+    if (
+        not isinstance(alt, Alternation)
+        or len(alt.productions) != 1
+        or len((s := alt.productions[0].concats)) != 1
+        or (isinstance(s[0], Terminal) and s[0].passive)
+    ):
         return alt
     return unwrap_alternation(alt.productions[0].concats[0])
 
@@ -77,7 +82,10 @@ def process_repetition(item, to_do, proto):
     if isinstance(item, (Terminal, Nonterminal, Alternation, Passive)):
         repetition_nt = Nonterminal(f'/*{item.name}')
         new_rule = Alternation(
-            [Concatenation([item, repetition_nt]), Concatenation([])],
+            [
+                Concatenation([item, repetition_nt]),
+                Concatenation([]),
+            ],
             None if proto else NO_PROTO
         )
         to_do.append((repetition_nt, new_rule))
@@ -99,7 +107,10 @@ def process_optional(item, to_do, proto):
     if isinstance(item, (Terminal, Nonterminal)):
         opt_nt = Nonterminal(f'/opt/{item.name}')
         new_rule = Alternation(
-            [Concatenation([item]), Concatenation([])],
+            [
+                Concatenation([item]),
+                Concatenation([]),
+            ],
             None if proto else NO_PROTO
         )
         to_do.append((opt_nt, new_rule))
@@ -108,7 +119,10 @@ def process_optional(item, to_do, proto):
     if isinstance(item, Alternation):
         if any(len(prod.concats) == 0 for prod in item.productions):
             return process_alternation(item, to_do, proto)
-        new_alt = Alternation(item.productions + [Concatenation([])], item.options)
+        new_alt = Alternation(
+            item.productions + [Concatenation([])],
+            item.options
+        )
         return process_item(new_alt, to_do, proto)
 
 
@@ -121,7 +135,12 @@ def process_passive(item, to_do, proto):
         return process_passive(item.sub, to_do, proto)
 
     if isinstance(item, Terminal):
-        return Terminal(item.regex, item.options, True, embed=item.embed, include=item.include)
+        item = Terminal(item.regex, item.options, True, embed=item.embed, include=item.include)
+        return process_passive(
+            Alternation(
+                [Concatenation([item])],
+                None if proto else NO_PROTO,
+            ), to_do, proto)
 
     if isinstance(item, Nonterminal):
         if item.passive:
