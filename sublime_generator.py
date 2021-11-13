@@ -1,6 +1,6 @@
 from functools import wraps
 
-from bnf import NonLeftRecursiveGrammar, Terminal, Nonterminal
+from bnf import NonLeftRecursiveGrammar, Terminal, Nonterminal, Concatenation
 try:
     import ruamel_yaml as yaml
 except ImportError:
@@ -26,7 +26,7 @@ def enqueue_todo(_f_context):
                 if (existing := self.seen_already.get(name, (_f_context, args))) != (_f_context, args):
                     print('repeated name with different context:', name)
                     print('existing:', existing)
-                    print('new:' , _f_context)
+                    print('new:' , (_f_context, args))
                     raise ValueError('already seen')
                 self.seen_already[name] = (_f_context, args)
                 self.to_do.append((name, _f_context, args))
@@ -116,7 +116,7 @@ class SublimeSyntax:
 
         self.to_do = []
         self.seen_already = {}
-        _ = self._nonpassive_name(grammar.start)
+        _ = self._symbol_name(grammar.start)
         while self.to_do:
             name, _f_context, args = self.to_do.pop(-1)
             if name in self.contexts:
@@ -135,174 +135,277 @@ class SublimeSyntax:
 
     # ---
 
-    def _nonpassive_context(self, nt):
-        nonpassive_table, passive_table = self.np_table[nt], self.p_table[nt]
-        passives = bool(passive_table)
-        np_nt = np(nt)
-
+    def _nonterminal_np_np(self, np_nt, passive_exists):
+        np_table = self.np_table[np_nt]
+        if not np_table:
+            if not passive_exists:
+                raise ValueError('Neither p nor np table?', repr(np_nt))
+            return self._nonterminal_np_p(np_nt)
         context = []
-        if self.grammar.rules[np_nt].option_list:
-            meta = [self._meta_name(nt), 'pop2!']
-        else:
-            meta = []
+        prods = self.grammar.rules[np_nt].productions
 
-        if len(self.grammar.rules[np_nt].productions) == 1 and nonpassive_table:
-            target = meta + self._production_stack(self.grammar.rules[np_nt].productions[0])
+        if len(prods) == 1:
+            target = self._production_stack(prods[0])
             if len(target) == 0:
                 return [{'match': '', 'pop': 2}]
             return [{'match': '', 'set': L(target)}]
 
-        for regex, indices in nonpassive_table:
+        for regex, indices in np_table:
             sorted_indices = sorted(indices)
-            if passives or len(sorted_indices) > 1:
+            if passive_exists or len(sorted_indices) > 1:
                 context.append({
                     'match': f'(?={regex})',
-                    'set': L(meta + [self._nonpassive_branch_name(nt, sorted_indices)]),
+                    'set': self._np_np_branch_name(np_nt, sorted_indices),
                 })
             else:
-                context.append({
-                    'match': f'(?={regex})',
-                    'set': L(meta + [self._production_name(nt, sorted_indices[0], False)]),
-                })
-        if passives:
-            pattern = r'(?=\S)' if nonpassive_table else ''
-            context.append({
-                'match': pattern,
-                'set': L(meta + [self._passive_branch_wrapper_name(nt)]),
-            })
+                # go directly to this production
+                match = {'match': f'(?={regex})'}
+                production = self.grammar.rules[np_nt].productions[sorted_indices[0]]
+                if (pc := production.concats) and pc[-1] == np_nt:
+                    action = {
+                        'push': L(['pop2!']
+                            + self._production_stack(Concatenation(pc[:-1])))
+                    }
+                else:
+                    action = {
+                        'set': self._production_name(np_nt, sorted_indices[0]),
+                    }
+                match.update(**action)
+                context.append(match)
+
+        if passive_exists:
+            context.append({'match': r'(?=\S)', 'set': self._nonterminal_np_p_name(np_nt)})
         else:
             context.append({'include': 'fail!'})
         return context
 
-    @enqueue_todo(_nonpassive_context)
-    def _nonpassive_name(self, nt):
+    def _nonterminal_np_p(self, np_nt):
+        p_table = self.p_table[np_nt]
+        context = []
+        for regex, indices in p_table:
+            sorted_indices = sorted(indices)
+            context.append({
+                'match': f'(?={regex})',
+                'set': self._np_p_branch_name(np_nt, sorted_indices),
+            })
+        return context
+
+    @enqueue_todo(_nonterminal_np_p)
+    def _nonterminal_np_p_name(self, np_nt):
+        return f'{self._nonterminal_name(np_nt)}@p!'
+
+    def _nonterminal_p(self, p_nt):
+        np_nt = np(p_nt)
+        p_table = dict(self.p_table[np_nt])
+        np_table = dict(self.np_table[np_nt])
+        combined_table = {
+            regex: set.union(p_table.get(regex, set()), np_table.get(regex, set()))
+            for regex in set(p_table).union(set(np_table))
+        }.items()
+        context = []
+        for regex, indices in combined_table:
+            sorted_indices = sorted(indices)
+            context.append({
+                'match': f'(?={regex})',
+                'set': self._p_branch_name(p_nt, sorted_indices),
+            })
+        return context
+
+    def _nonterminal_context(self, nt):
+        if not nt.passive:
+            return self._nonterminal_np_np(nt, bool(self.p_table[nt]))
+        return self._nonterminal_p(nt)
+
+    @enqueue_todo(_nonterminal_context)
+    def _nonterminal_name(self, nt):
         return nt.name
 
     # ---
 
-    def _nonpassive_branch_context(self, nt, indices):
-        passive_table = self.p_table[nt]
-        passives = bool(passive_table)
-
-        branch_name = self._nonpassive_branch_name(nt, indices)
+    def _np_np_branch_context(self, np_nt, indices):
+        passive_exists = bool(self.p_table[np_nt])
+        branch_name = self._np_np_branch_name(np_nt, indices)
         branches = [
-            self._nonpassive_branch_tree_name(
-                nt, indices, i, not passives and i == len(indices) - 1)
+            self._np_np_branch_item_name(
+                np_nt,
+                indices,
+                i,
+                not passive_exists and i == len(indices) - 1
+            )
             for i in indices
         ]
-
-        if passives:
-            branches.append(self._passive_branch_wrapper_wrapper_name(nt))
-
-        match = {
+        if passive_exists:
+            branches.append(self._np_np_branch_to_p_name(np_nt))
+        return [{
             'match': '',
             'branch_point': branch_name,
             'branch': L(branches),
-        }
-
-        return [match]
-
-    @enqueue_todo(_nonpassive_branch_context)
-    def _nonpassive_branch_name(self, nt, indices):
-        return f'{self._nonpassive_name(nt)}@{",".join([str(i) for i in indices])}'
-
-    # ---
-
-    def _passive_branch_wrapper_wrapper_context(self, nt):
-        return [{
-            'match': '',
-            'pop': 1,
-            'set': self._passive_branch_wrapper_name(nt),
         }]
 
-    @enqueue_todo(_passive_branch_wrapper_wrapper_context)
-    def _passive_branch_wrapper_wrapper_name(self, nt):
-        return f'{self._passive_branch_wrapper_name(nt)}@wrap!'
+
+    @enqueue_todo(_np_np_branch_context)
+    def _np_np_branch_name(self, np_nt, indices):
+        return f'{self._nonterminal_name(np_nt)}@{",".join([str(i) for i in indices])}'
 
     # ---
 
-    def _passive_branch_wrapper_context(self, nt):
-        # If the passive nonterminal ultimately expands to the empty string,
-        # then we actually want to wind back the current character to before
-        # we started consuming characters, so that the consumed characters don't
-        # get the meta scope of the passive nonterminal.
+    def _np_np_branch_to_p_context(self, np_nt):
+        return [{'match': '', 'pop': 1, 'set': self._nonterminal_np_p_name(np_nt)}]
+
+    @enqueue_todo(_np_np_branch_to_p_context)
+    def _np_np_branch_to_p_name(self, np_nt):
+        return f'{self._nonterminal_name(np_nt)}@to_p!'
+
+    # ---
+
+    def _np_p_branch_context(self, np_nt, indices):
+        branch_name = self._np_p_branch_name(np_nt, indices)
+        branches = [
+            self._np_p_branch_item_name(np_nt, indices, i)
+            for i in indices
+        ]
+        branches.append('consume!')
         return [{
             'match': '',
-            'branch_point': self._passive_branch_wrapper_name(nt),
-            'branch': L([self._passive_version_name(nt), 'pop3!'])
+            'branch_point': branch_name,
+            'branch': L(branches),
         }]
 
-    @enqueue_todo(_passive_branch_wrapper_context)
-    def _passive_branch_wrapper_name(self, nt):
-        return f'{self._passive_version_name(nt)}@b!'
+    @enqueue_todo(_np_p_branch_context)
+    def _np_p_branch_name(self, np_nt, indices):
+        return f'{self._nonterminal_np_p_name(np_nt)}@{",".join([str(i) for i in indices])}'
 
     # ---
 
-    def _passive_branch_fail_context(self, nt):
-        return [{'match': '', 'fail': self._passive_branch_wrapper_name(nt)}]
+    def _p_branch_context(self, p_nt, indices):
+        branch_name = self._p_branch_name(p_nt, indices)
+        branches = [
+            self._p_branch_item_name(p_nt, indices, i)
+            for i in indices
+        ]
+        branches.append('consume!')
+        return [{
+            'match': '',
+            'branch_point': branch_name,
+            'branch': L(branches),
+        }]
 
-    @enqueue_todo(_passive_branch_fail_context)
-    def _passive_branch_fail_name(self, nt):
-        return f'{self._passive_branch_wrapper_name(nt)}@wfail!'
+    @enqueue_todo(_p_branch_context)
+    def _p_branch_name(self, p_nt, indices):
+        return f'{self._nonterminal_name(p_nt)}@{",".join([str(i) for i in indices])}'
 
     # ---
 
-    def _nonpassive_branch_tree_context(self, nt, indices, i, last):
+    def _np_np_branch_item_context(self, np_nt, indices, i, last):
         fail_name = 'pop3!' if last else \
-            self._nonpassive_branch_fail_name(nt, indices)
-        passive_in_follow = any(
-            t.passive for t in self.grammar.follow[nt] if t is not None
-        )
-        if not passive_in_follow:
-            follow = [self._nonpassive_follow_name(nt), 'pop2!']
+            self._np_np_branch_fail_name(np_nt, indices)
+        skip_follow = any(
+            t.passive for t in self.grammar.follow[np_nt] if t is not None
+        ) or self.grammar.follow[np_nt].difference({None}) == {}
+        if not skip_follow:
+            follow = [self._follow_name(np_nt), 'pop2!']
         else:
             follow = []
         return [{
             'match': '',
-            'set': L(['pop3!', fail_name] + follow + [self._production_name(nt, i, False)]),
+            'set': L(['pop3!', fail_name] + follow + [self._production_name(np_nt, i)])
         }]
 
-    @enqueue_todo(_nonpassive_branch_tree_context)
-    def _nonpassive_branch_tree_name(self, nt, indices, i, last):
-        return f'{self._nonpassive_branch_name(nt, indices)}!{i}'
+    @enqueue_todo(_np_np_branch_item_context)
+    def _np_np_branch_item_name(self, np_nt, indices, i, last):
+        return f'{self._np_np_branch_name(np_nt, indices)}!{i}'
 
     # ---
 
-    def _nonpassive_follow_context(self, nt):
+    def _np_np_branch_fail_context(self, np_nt, indices):
+        return [{'match': '', 'fail': self._np_np_branch_name(np_nt, indices)}]
+
+    @enqueue_todo(_np_np_branch_fail_context)
+    def _np_np_branch_fail_name(self, np_nt, indices):
+        return f'{self._np_np_branch_name(np_nt, indices)}@fail!'
+
+    # ---
+
+    def _np_p_branch_item_context(self, np_nt, indices, i):
+        fail_name = self._np_p_branch_fail_name(np_nt, indices)
+        skip_follow = any(
+            t.passive for t in self.grammar.follow[np_nt] if t is not None
+        ) or self.grammar.follow[np_nt].difference({None}) == {}
+        if not skip_follow:
+            follow = [self._follow_name(np_nt), 'pop2!']
+        else:
+            follow = []
+        return [{
+            'match': '',
+            'set': L(['pop3!', fail_name] + follow + [self._production_name(np_nt, i)])
+        }]
+
+    @enqueue_todo(_np_p_branch_item_context)
+    def _np_p_branch_item_name(self, np_nt, indices, i):
+        return f'{self._np_p_branch_name(np_nt, indices)}!{i}'
+
+    # ---
+
+    def _np_p_branch_fail_context(self, np_nt, indices):
+        return [{'match': '', 'fail': self._np_p_branch_name(np_nt, indices)}]
+
+    @enqueue_todo(_np_p_branch_fail_context)
+    def _np_p_branch_fail_name(self, np_nt, indices):
+        return f'{self._np_p_branch_name(np_nt, indices)}@fail!'
+
+    # ---
+
+    def _p_branch_item_context(self, p_nt, indices, i):
+        fail_name = self._p_branch_fail_name(p_nt, indices)
+        skip_follow = any(
+            t.passive for t in self.grammar.follow[p_nt] if t is not None
+        ) or self.grammar.follow[p_nt].difference({None}) == {}
+        if not skip_follow:
+            follow = [self._follow_name(p_nt), 'pop2!']
+        else:
+            follow = []
+        return [{
+            'match': '',
+            'set': L(['pop3!', fail_name] + follow + [self._production_name(np(p_nt), i)])
+        }]
+
+    @enqueue_todo(_p_branch_item_context)
+    def _p_branch_item_name(self, p_nt, indices, i):
+        return f'{self._p_branch_name(p_nt, indices)}!{i}'
+
+    # ---
+
+    def _p_branch_fail_context(self, p_nt, indices):
+        return [{'match': '', 'fail': self._p_branch_name(p_nt, indices)}]
+
+    @enqueue_todo(_p_branch_fail_context)
+    def _p_branch_fail_name(self, p_nt, indices):
+        return f'{self._p_branch_name(p_nt, indices)}@fail!'
+
+    # ---
+
+    def _follow_context(self, nt):
         follow = self.grammar.follow[nt]
-        if follow == {None}:
-            return [{'include': 'fail!'}]
         context = []
         for t in follow:
             if t is None:
                 continue
-            if t.passive:
-                return [{'match': '', 'pop': 2}]
-            context.append({'match': f'(?={t.regex})', 'pop': 2})
+            if not t.passive:
+                context.append({'match': f'(?={t.regex})', 'pop': 2})
         context.append({'include': 'fail!'})
         return context
 
-    @enqueue_todo(_nonpassive_follow_context)
-    def _nonpassive_follow_name(self, nt):
-        return f'{self._nonpassive_name(nt)}@follow'
+    @enqueue_todo(_follow_context)
+    def _follow_name(self, nt):
+        return f'{self._nonterminal_name(nt)}@follow!'
 
     # ---
 
-    # def _passive_follow_context(self, nt):
-    #     passive_nt = Nonterminal(nt.symbol, nt.args, True)
-    #     return self._nonpassive_follow_context(passive_nt)
-
-    @enqueue_todo(_nonpassive_follow_context)
-    def _passive_follow_name(self, nt):
-        return f'{self._passive_version_name(nt)}@follow'
-
-    # ---
-
-    def _nonpassive_branch_fail_context(self, nt, indices):
+    def _fail_context(self, nt, indices):
         return [{'match': '', 'fail': self._nonpassive_branch_name(nt, indices)}]
 
-    @enqueue_todo(_nonpassive_branch_fail_context)
-    def _nonpassive_branch_fail_name(self, nt, indices):
+    @enqueue_todo(_fail_context)
+    def _fail_name(self, nt, indices):
         return f'{self._nonpassive_branch_name(nt, indices)}@fail!'
 
     # ---
@@ -316,95 +419,17 @@ class SublimeSyntax:
             production_stack.extend([self._symbol_name(symbol), 'pop2!'])
         return production_stack[:-1]
 
-    def _production_context(self, nt, index, passive):
-        np_nt = np(nt)
+    def _production_context(self, np_nt, index):
         production = self.grammar.rules[np_nt].productions[index]
-
         # can assume production is not empty
         return [{'match': '', 'set': L(self._production_stack(production))}]
 
     @enqueue_todo(_production_context)
-    def _production_name(self, nt, index, passive):
-        np_nt = np(nt)
+    def _production_name(self, np_nt, index):
         production = self.grammar.rules[np_nt].productions[index]
         if len(production.concats) == 0:
-            if not passive:
-                return 'pop2!', False
-            return self._passive_branch_fail_name(nt), False
-            # return 'pop2!', False
-        return f'{self._nonpassive_name(nt)}|{index}'
-
-    # ---
-
-    def _passive_branch_tree_context(self, nt, indices, i):
-        fail_branch_name = self._passive_branch_part_fail_name(nt, indices)
-        passive_in_follow = any(
-            t.passive for t in self.grammar.follow[nt] if t is not None
-        )
-        if not passive_in_follow:
-            follow = [self._passive_follow_name(nt), 'pop2!']
-        else:
-            follow = []
-        return [{
-            'match': '',
-            'set': L(['pop5!', fail_branch_name] + follow + [self._production_name(nt, i, True)]),
-        }]
-
-    @enqueue_todo(_passive_branch_tree_context)
-    def _passive_branch_tree_name(self, nt, indices, i):
-        return f'{self._passive_part_branch_name(nt, indices)}!{i}'
-
-    # ---
-
-    def _passive_branch_part_fail_context(self, nt, indices):
-        return [{'match': '', 'fail': self._passive_part_branch_name(nt, indices)}]
-
-    @enqueue_todo(_passive_branch_part_fail_context)
-    def _passive_branch_part_fail_name(self, nt, indices):
-        str_indices = ','.join([str(i) for i in sorted(indices)])
-        return f'{self._passive_version_name(nt)}@{str_indices}@fail!'
-
-    # ---
-
-    def _passive_part_branch_context(self, nt, indices):
-        branch_name = self._passive_part_branch_name(nt, indices)
-        branches = [
-            self._passive_branch_tree_name(nt, indices, i)
-            for i in indices
-        ] + ['consume!']
-
-        match = {
-            'match': '',
-            'branch_point': branch_name,
-            'branch': L(branches)
-        }
-
-        return [match]
-
-    @enqueue_todo(_passive_part_branch_context)
-    def _passive_part_branch_name(self, nt, indices):
-        indices = indices + ['c']
-        return f'{self._passive_version_name(nt)}@{",".join([str(i) for i in indices])}'
-
-    # ---
-
-    def _passive_version_context(self, nt):
-        passive_table = self.p_table[nt]
-        # print('_passive_version_context:', nt.symbol, passive_table)
-        context = []
-
-        for regex, indices in passive_table:
-            sorted_indices = sorted(indices)
-            context.append({
-                'match': f'(?={regex})',
-                'push': self._passive_part_branch_name(nt, sorted_indices)
-            })
-
-        return context
-
-    @enqueue_todo(_passive_version_context)
-    def _passive_version_name(self, nt):
-        return f'{self._nonpassive_name(nt)}@p!'
+            return 'pop2!', False
+        return f'{self._nonterminal_name(np_nt)}|{index}'
 
     # ---
 
@@ -419,7 +444,27 @@ class SublimeSyntax:
 
     @enqueue_todo(_meta_context)
     def _meta_name(self, nt):
-        return f'{self._nonpassive_name(nt)}@meta!'
+        return f'{self._nonterminal_name(nt)}@meta!'
+
+    # ---
+
+    def _meta_wrapper_context(self, nt):
+        if not nt.passive:
+            return [
+                {'match': '', 'set': L([self._meta_name(nt), 'pop2!', self._nonterminal_name(nt)])},
+            ]
+        np_nt = np(nt)
+        context = []
+        for regex in set.union(set(self.np_table[np_nt]), set(self.p_table[np_nt])):
+            context.append({
+                'match': f'(?={regex})',
+                'set': L([self._meta_name(np_nt), 'pop2!', self._nonterminal_name(nt)]),
+            })
+
+
+    @enqueue_todo(_meta_wrapper_context)
+    def _meta_wrapper_name(self, nt):
+        return f'{self._nonterminal_name(nt)}@wrap_meta!'
 
     # ---
 
@@ -436,16 +481,13 @@ class SublimeSyntax:
             (include_symbol,), include_options = t.include
             action = {
                 'set': include_options,
-                'with_prototype': [{'include': self._nonpassive_name(include_symbol)}],
+                'with_prototype': [{'include': self._nonterminal_name(include_symbol)}],
             }
         else:
             action = {'pop': 2}
 
         match.update(**action)
-
         matches.append({'include': 'fail!'})
-
-
         return matches
 
     @enqueue_todo(_terminal_context)
@@ -456,5 +498,7 @@ class SublimeSyntax:
 
     def _symbol_name(self, symbol):
         if isinstance(symbol, Nonterminal):
-            return self._nonpassive_name(symbol)
+            if symbol.passive or not self.grammar.rules[np(symbol)].option_list:
+                return self._nonterminal_name(symbol)
+            return self._meta_wrapper_name(symbol)
         return self._terminal_name(symbol)
