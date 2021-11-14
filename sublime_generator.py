@@ -105,9 +105,16 @@ class SublimeSyntax:
             'pop5!': [{'match': '', 'pop': 5}],
             'consume!': [{'match': r'\S', 'scope': f'meta.consume.{self.scope}', 'pop': 3}],
             'fail!': [{'match': r'(?=\S)', 'pop': 1}],
-            'fail_forever!': [{'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'}],
+            'fail_forever1!': [
+                {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
+                {'match': r'\n', 'push': L(['fail_forever2!', grammar.start.name])}
+            ],
+            'fail_forever2!': [
+                {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
+                {'match': r'\n', 'push': grammar.start.name}
+            ],
             'main': [{'match': '', 'push': L([
-                'fail_forever!', 'fail_forever!', grammar.start.name
+                'fail_forever1!', 'fail_forever2!', grammar.start.name
             ])}]
         }
         self.np_table = {}
@@ -136,7 +143,7 @@ class SublimeSyntax:
             if name in self.contexts:
                 continue
             ctx = _f_context(self, *args)
-            if not proto:
+            if not proto and 'meta_include_prototype' not in ctx[0]:
                 ctx.insert(0, {'meta_include_prototype': False})
             self.contexts[name] = ctx
 
@@ -151,10 +158,10 @@ class SublimeSyntax:
 
     # ---
 
-    def _production_action(self, np_nt, production):
+    def _production_action(self, np_nt, production, proto):
         if len(production.concats) == 0:
             return {'pop': 2}
-        production_stack = self._production_stack(production)
+        production_stack = self._production_stack(production, proto=proto)
         if np(production.concats[-1]) == np_nt:
             return {'push': L(production_stack[1:])}
         return {'set': L(production_stack)}
@@ -165,14 +172,15 @@ class SublimeSyntax:
             if not passive_exists:
                 raise ValueError('Neither p nor np table?', repr(np_nt))
             return self._nonterminal_np_p(np_nt)
-        context = []
         prods = self.grammar.rules[np_nt].productions
+        proto = self.grammar.rules[np_nt].proto
         skip_follow = self._skip_follow(np_nt)
+        context = [] if proto else [{'meta_include_prototype': False}]
 
         if len(prods) == 1:
             match = {'match': ''}
-            action = self._production_action(np_nt, prods[0])
-            return [{**match, **action}]
+            action = self._production_action(np_nt, prods[0], proto)
+            return context + [{**match, **action}]
 
         for regex, indices in np_table:
             match = {'match': f'(?={regex})'}
@@ -180,7 +188,7 @@ class SublimeSyntax:
             if len(sorted_indices) == 1:
                 production = prods[sorted_indices[0]]
                 if not passive_exists or (skip_follow and len(production.concats) == 0):
-                    action = self._production_action(np_nt, production)
+                    action = self._production_action(np_nt, production, proto)
                     context.append({**match, **action})
                     continue
 
@@ -195,7 +203,8 @@ class SublimeSyntax:
 
     def _nonterminal_np_p(self, np_nt):
         p_table = self.p_table[np_nt]
-        context = []
+        proto = self.grammar.rules[np_nt].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
         skip_follow = self._skip_follow(np_nt)
         for regex, indices in p_table:
             match = {'match': f'(?={regex})'}
@@ -229,7 +238,8 @@ class SublimeSyntax:
             regex: set.union(p_table.get(regex, set()), np_table.get(regex, set()))
             for regex in set(p_table).union(set(np_table))
         }.items()
-        context = []
+        proto = self.grammar.rules[np(p_nt)].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
         for regex, indices in combined_table:
             sorted_indices = sorted(indices)
             context.append({
@@ -254,6 +264,8 @@ class SublimeSyntax:
     # ---
 
     def _np_np_branch_context(self, np_nt, indices):
+        proto = self.grammar.rules[np_nt].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
         passive_exists = bool(self.p_table[np_nt])
         branch_name = self._np_np_branch_name(np_nt, indices)
         branches = [
@@ -267,7 +279,7 @@ class SublimeSyntax:
         ]
         if passive_exists:
             branches.append(self._np_np_branch_to_p_name(np_nt))
-        return [{
+        return context + [{
             'match': '',
             'branch_point': branch_name,
             'branch': L(branches),
@@ -289,13 +301,15 @@ class SublimeSyntax:
     # ---
 
     def _np_p_branch_context(self, np_nt, indices):
+        proto = self.grammar.rules[np_nt].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
         branch_name = self._np_p_branch_name(np_nt, indices)
         branches = [
             self._np_p_branch_item_name(np_nt, indices, i)
             for i in indices
         ]
         branches.append('consume!')
-        return [{
+        return context + [{
             'match': '',
             'branch_point': branch_name,
             'branch': L(branches),
@@ -311,17 +325,34 @@ class SublimeSyntax:
         fail_name = 'pop3!' if last else \
             self._np_np_branch_fail_name(np_nt, indices)
         skip_follow = self._skip_follow(np_nt)
+        production = self.grammar.rules[np_nt].productions[i]
+        proto = self.grammar.rules[np_nt].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
         if not skip_follow:
             follow = [self._follow_name(np_nt), 'pop2!']
         else:
             follow = []
-        return [{
+        if not production.concats:
+            if not follow:
+                raise ValueError(
+                    f'Programming error; should not have empty follow and also '
+                    f'empty production. {repr(np_nt)}, {indices}, {i}')
+            else:
+                follow = follow[:1]
+                production_stack = []
+        else:
+            production_stack = self._production_stack(production, proto=proto)
+
+        return context + [{
             'match': '',
-            'set': L(['pop3!', fail_name] + follow + [self._production_name(np_nt, i)])
+            'set': L(['pop3!', fail_name] + follow + production_stack)
         }]
 
     @enqueue_todo(_np_np_branch_item_context)
     def _np_np_branch_item_name(self, np_nt, indices, i, last):
+        if (self._skip_follow(np_nt) and not self.grammar.rules[np_nt].productions[i].concats):
+            return 'pop3!', False
+
         return f'{self._np_np_branch_name(np_nt, indices, compute=False)}!{i}'
 
     # ---
@@ -339,12 +370,31 @@ class SublimeSyntax:
         fail_name = self._np_p_branch_fail_name(np_nt, indices)
         skip_follow = self._skip_follow(np_nt)
         production = self.grammar.rules[np_nt].productions[i]
-        production_stack = self._production_stack(production)
+        proto = self.grammar.rules[np_nt].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
         if not skip_follow:
             follow = [self._follow_name(np_nt), 'pop2!']
         else:
             follow = []
-        return [{
+        if not production.concats:
+            if not follow:
+                raise ValueError(
+                    f'Programming error; should not have empty follow and also '
+                    f'empty production. {repr(np_nt)}, {indices}, {i}')
+            else:
+                follow = follow[:1]
+                production_stack = []
+        else:
+            production_stack = self._production_stack(production, proto=proto)
+
+        if np(production.concats[-1]) == np_nt:
+            return context + [{
+                'match': '',
+                'push': L(production_stack[2:]),
+                'pop': 2
+            }]
+
+        return context + [{
             'match': '',
             'set': L(['pop5!', fail_name] + follow + production_stack)
         }]
@@ -359,7 +409,9 @@ class SublimeSyntax:
     # ---
 
     def _np_p_branch_fail_context(self, np_nt, indices):
-        return [{'match': '', 'fail': self._np_p_branch_name(np_nt, indices)}]
+        proto = self.grammar.rules[np_nt].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
+        return context + [{'match': '', 'fail': self._np_p_branch_name(np_nt, indices)}]
 
     @enqueue_todo(_np_p_branch_fail_context)
     def _np_p_branch_fail_name(self, np_nt, indices):
@@ -369,7 +421,8 @@ class SublimeSyntax:
 
     def _follow_context(self, nt):
         follow = self.grammar.follow[nt]
-        context = []
+        proto = self.grammar.rules[np(nt)].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
         for t in follow:
             if t is None:
                 continue
@@ -393,45 +446,35 @@ class SublimeSyntax:
 
     # ---
 
-    def _production_stack(self, production):
+    def _production_stack(self, production, proto=True):
         if len(production.concats) == 0:
             raise ValueError('This method should not be called on an empty production')
 
         production_stack = []
         for symbol in production.concats[::-1]:
             if not symbol.passive:
-                production_stack.extend([self._symbol_name(symbol), 'pop2!'])
+                production_stack.extend([self._symbol_name(symbol, proto=proto), 'pop2!'])
             elif isinstance(symbol, Nonterminal):
                 production_stack.extend([
-                    self._symbol_name(np(symbol)), 'pop2!',
-                    self._nonterminal_p_preface_name(symbol), 'pop2!'
+                    self._symbol_name(np(symbol), proto=proto), 'pop2!',
+                    self._nonterminal_p_preface_name(symbol, proto=proto), 'pop2!'
                 ])
             else:
                 production_stack.extend([
-                    self._symbol_name(np(symbol)), 'pop2!',
-                    self._terminal_p_preface_name(symbol), 'pop2!'
+                    self._symbol_name(np(symbol), proto=proto), 'pop2!',
+                    self._terminal_p_preface_name(symbol, proto=proto), 'pop2!'
                 ])
 
         return production_stack[:-1]
 
-    def _production_context(self, np_nt, index):
-        production = self.grammar.rules[np_nt].productions[index]
-        # can assume production is not empty
-        return [{'match': '', 'set': L(self._production_stack(production))}]
-
-    @enqueue_todo(_production_context)
-    def _production_name(self, np_nt, index):
-        production = self.grammar.rules[np_nt].productions[index]
-        if len(production.concats) == 0:
-            return 'pop2!', False
-        return f'{self._nonterminal_name(np_nt, compute=False)}|{index}'
-
     # ---
 
     def _meta_context(self, nt):
+        proto = self.grammar.rules[np(nt)].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
         meta_scopes = self.grammar.rules[np(nt)].option_list
         meta_scope = ' '.join([f'{s}.{self.scope}' for s in meta_scopes])
-        return [
+        return context + [
             {'meta_scope': meta_scope},
             {'match': '', 'pop': 2},
         ]
@@ -443,17 +486,18 @@ class SublimeSyntax:
     # ---
 
     def _meta_wrapper_context(self, nt):
+        proto = self.grammar.rules[np(nt)].proto
+        context = [] if proto else [{'meta_include_prototype': False}]
         if not nt.passive:
-            return [
+            return context + [
                 {'match': '', 'set': L([self._meta_name(nt), 'pop2!', self._nonterminal_name(nt)])},
             ]
-        np_nt = np(nt)
-        context = []
         for regex in set.union(set(self.np_table[np_nt]), set(self.p_table[np_nt])):
             context.append({
                 'match': f'(?={regex})',
                 'set': L([self._meta_name(np_nt), 'pop2!', self._nonterminal_name(nt)]),
             })
+        return context
 
 
     @enqueue_todo(_meta_wrapper_context)
@@ -490,12 +534,13 @@ class SublimeSyntax:
 
     # ---
 
-    def _symbol_name(self, symbol):
+    # Called only from _production_stack
+    def _symbol_name(self, symbol, proto=True):
         if isinstance(symbol, Nonterminal):
             if symbol.passive or not self.grammar.rules[np(symbol)].option_list:
-                return self._nonterminal_name(symbol)
-            return self._meta_wrapper_name(symbol)
-        return self._terminal_name(symbol)
+                return self._nonterminal_name(symbol, proto=proto)
+            return self._meta_wrapper_name(symbol, proto=proto)
+        return self._terminal_name(symbol, proto=proto)
 
     # ---
 

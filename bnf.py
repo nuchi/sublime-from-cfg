@@ -109,6 +109,10 @@ class Alternation(Expression, OptionsHaver):
     def _name(self):
         return '/alt'
 
+    @property
+    def proto(self):
+        return self.option_kv.get('include-prototype', 'true') == 'true'
+
 
 class NonLeftRecursiveGrammar:
     def __init__(self, rules: dict[Nonterminal, Alternation], start: Nonterminal):
