@@ -8,6 +8,8 @@ except ImportError:
 
 
 def L(l):
+    if len(l) == 1:
+        return l[0]
     ret = yaml.comments.CommentedSeq(l)
     ret.fa.set_flow_style()
     return ret
@@ -16,12 +18,13 @@ def L(l):
 def enqueue_todo(_f_context):
     def decorator(_f_name):
         @wraps(_f_name)
-        def new_f(self, *args):
+        def new_f(self, *args, compute=None):
             name = _f_name(self, *args)
-            if isinstance(name, tuple):
-                name, compute = name
-            else:
-                compute = True
+            if compute is None:
+                if isinstance(name, tuple):
+                    name, compute = name
+                else:
+                    compute = True
             if compute:
                 if (existing := self.seen_already.get(name, (_f_context, args))) != (_f_context, args):
                     print('repeated name with different context:', name)
@@ -91,7 +94,7 @@ class SublimeSyntax:
             'pop2!': [{'match': '', 'pop': 2}],
             'pop3!': [{'match': '', 'pop': 3}],
             'pop5!': [{'match': '', 'pop': 5}],
-            'consume!': [{'match': r'\S', 'scope': f'region.redish.{self.scope}', 'pop': 2}],
+            'consume!': [{'match': r'\S', 'scope': f'region.redish.{self.scope}', 'pop': 3}],
             'fail!': [{'match': r'(?=\S)', 'pop': 1}],
             'fail_forever!': [{'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'}],
             'main': [{'match': '', 'push': L([
@@ -117,6 +120,8 @@ class SublimeSyntax:
         self.to_do = []
         self.seen_already = {}
         _ = self._symbol_name(grammar.start)
+        if (proto := Nonterminal('prototype') in grammar.rules):
+            _ = self._symbol_name(Nonterminal('prototype'))
         while self.to_do:
             name, _f_context, args = self.to_do.pop(-1)
             if name in self.contexts:
@@ -186,18 +191,17 @@ class SublimeSyntax:
             sorted_indices = sorted(indices)
             context.append({
                 'match': f'(?={regex})',
-                'set': self._np_p_branch_name(np_nt, sorted_indices),
+                'push': L(['pop2!', self._np_p_branch_name(np_nt, sorted_indices)]),
             })
         return context
 
     @enqueue_todo(_nonterminal_np_p)
     def _nonterminal_np_p_name(self, np_nt):
-        return f'{self._nonterminal_name(np_nt)}@p!'
+        return f'{self._nonterminal_name(np_nt, compute=False)}@p!'
 
     def _nonterminal_p(self, p_nt):
-        np_nt = np(p_nt)
-        p_table = dict(self.p_table[np_nt])
-        np_table = dict(self.np_table[np_nt])
+        p_table = dict(self.p_table[p_nt])
+        np_table = dict(self.np_table[p_nt])
         combined_table = {
             regex: set.union(p_table.get(regex, set()), np_table.get(regex, set()))
             for regex in set(p_table).union(set(np_table))
@@ -207,7 +211,7 @@ class SublimeSyntax:
             sorted_indices = sorted(indices)
             context.append({
                 'match': f'(?={regex})',
-                'set': self._p_branch_name(p_nt, sorted_indices),
+                'push': L(['pop2!', self._p_branch_name(p_nt, sorted_indices)]),
             })
         return context
 
@@ -242,10 +246,9 @@ class SublimeSyntax:
             'branch': L(branches),
         }]
 
-
     @enqueue_todo(_np_np_branch_context)
     def _np_np_branch_name(self, np_nt, indices):
-        return f'{self._nonterminal_name(np_nt)}@{",".join([str(i) for i in indices])}'
+        return f'{self._nonterminal_name(np_nt, compute=False)}@{",".join([str(i) for i in indices])}'
 
     # ---
 
@@ -254,7 +257,7 @@ class SublimeSyntax:
 
     @enqueue_todo(_np_np_branch_to_p_context)
     def _np_np_branch_to_p_name(self, np_nt):
-        return f'{self._nonterminal_name(np_nt)}@to_p!'
+        return f'{self._nonterminal_name(np_nt, compute=False)}@to_p!'
 
     # ---
 
@@ -273,7 +276,7 @@ class SublimeSyntax:
 
     @enqueue_todo(_np_p_branch_context)
     def _np_p_branch_name(self, np_nt, indices):
-        return f'{self._nonterminal_np_p_name(np_nt)}@{",".join([str(i) for i in indices])}'
+        return f'{self._nonterminal_np_p_name(np_nt, compute=False)}@{",".join([str(i) for i in indices])}'
 
     # ---
 
@@ -292,16 +295,14 @@ class SublimeSyntax:
 
     @enqueue_todo(_p_branch_context)
     def _p_branch_name(self, p_nt, indices):
-        return f'{self._nonterminal_name(p_nt)}@{",".join([str(i) for i in indices])}'
+        return f'{self._nonterminal_name(p_nt, compute=False)}@{",".join([str(i) for i in indices])}'
 
     # ---
 
     def _np_np_branch_item_context(self, np_nt, indices, i, last):
         fail_name = 'pop3!' if last else \
             self._np_np_branch_fail_name(np_nt, indices)
-        skip_follow = any(
-            t.passive for t in self.grammar.follow[np_nt] if t is not None
-        ) or self.grammar.follow[np_nt].difference({None}) == {}
+        skip_follow = self._skip_follow(np_nt)
         if not skip_follow:
             follow = [self._follow_name(np_nt), 'pop2!']
         else:
@@ -313,7 +314,7 @@ class SublimeSyntax:
 
     @enqueue_todo(_np_np_branch_item_context)
     def _np_np_branch_item_name(self, np_nt, indices, i, last):
-        return f'{self._np_np_branch_name(np_nt, indices)}!{i}'
+        return f'{self._np_np_branch_name(np_nt, indices, compute=False)}!{i}'
 
     # ---
 
@@ -322,27 +323,25 @@ class SublimeSyntax:
 
     @enqueue_todo(_np_np_branch_fail_context)
     def _np_np_branch_fail_name(self, np_nt, indices):
-        return f'{self._np_np_branch_name(np_nt, indices)}@fail!'
+        return f'{self._np_np_branch_name(np_nt, indices, compute=False)}@fail!'
 
     # ---
 
     def _np_p_branch_item_context(self, np_nt, indices, i):
         fail_name = self._np_p_branch_fail_name(np_nt, indices)
-        skip_follow = any(
-            t.passive for t in self.grammar.follow[np_nt] if t is not None
-        ) or self.grammar.follow[np_nt].difference({None}) == {}
+        skip_follow = self._skip_follow(np_nt)
         if not skip_follow:
             follow = [self._follow_name(np_nt), 'pop2!']
         else:
             follow = []
         return [{
             'match': '',
-            'set': L(['pop3!', fail_name] + follow + [self._production_name(np_nt, i)])
+            'set': L(['pop5!', fail_name] + follow + [self._production_name(np_nt, i)])
         }]
 
     @enqueue_todo(_np_p_branch_item_context)
     def _np_p_branch_item_name(self, np_nt, indices, i):
-        return f'{self._np_p_branch_name(np_nt, indices)}!{i}'
+        return f'{self._np_p_branch_name(np_nt, indices, compute=False)}!{i}'
 
     # ---
 
@@ -351,27 +350,32 @@ class SublimeSyntax:
 
     @enqueue_todo(_np_p_branch_fail_context)
     def _np_p_branch_fail_name(self, np_nt, indices):
-        return f'{self._np_p_branch_name(np_nt, indices)}@fail!'
+        return f'{self._np_p_branch_name(np_nt, indices, compute=False)}@fail!'
 
     # ---
 
     def _p_branch_item_context(self, p_nt, indices, i):
         fail_name = self._p_branch_fail_name(p_nt, indices)
-        skip_follow = any(
-            t.passive for t in self.grammar.follow[p_nt] if t is not None
-        ) or self.grammar.follow[p_nt].difference({None}) == {}
+
+        skip_follow = self._skip_follow(p_nt)
         if not skip_follow:
             follow = [self._follow_name(p_nt), 'pop2!']
         else:
             follow = []
+
+        if self.grammar.rules[np(p_nt)].option_list:
+            meta = [self._meta_name(p_nt), 'pop2!']
+        else:
+            meta = []
+
         return [{
             'match': '',
-            'set': L(['pop3!', fail_name] + follow + [self._production_name(np(p_nt), i)])
+            'set': L(['pop5!', fail_name] + follow + meta + [self._production_name(np(p_nt), i)])
         }]
 
     @enqueue_todo(_p_branch_item_context)
     def _p_branch_item_name(self, p_nt, indices, i):
-        return f'{self._p_branch_name(p_nt, indices)}!{i}'
+        return f'{self._p_branch_name(p_nt, indices, compute=False)}!{i}'
 
     # ---
 
@@ -380,7 +384,7 @@ class SublimeSyntax:
 
     @enqueue_todo(_p_branch_fail_context)
     def _p_branch_fail_name(self, p_nt, indices):
-        return f'{self._p_branch_name(p_nt, indices)}@fail!'
+        return f'{self._p_branch_name(p_nt, indices, compute=False)}@fail!'
 
     # ---
 
@@ -397,7 +401,7 @@ class SublimeSyntax:
 
     @enqueue_todo(_follow_context)
     def _follow_name(self, nt):
-        return f'{self._nonterminal_name(nt)}@follow!'
+        return f'{self._nonterminal_name(nt, compute=False)}@follow!'
 
     # ---
 
@@ -406,7 +410,7 @@ class SublimeSyntax:
 
     @enqueue_todo(_fail_context)
     def _fail_name(self, nt, indices):
-        return f'{self._nonpassive_branch_name(nt, indices)}@fail!'
+        return f'{self._nonpassive_branch_name(nt, indices, compute=False)}@fail!'
 
     # ---
 
@@ -429,7 +433,7 @@ class SublimeSyntax:
         production = self.grammar.rules[np_nt].productions[index]
         if len(production.concats) == 0:
             return 'pop2!', False
-        return f'{self._nonterminal_name(np_nt)}|{index}'
+        return f'{self._nonterminal_name(np_nt, compute=False)}|{index}'
 
     # ---
 
@@ -440,11 +444,10 @@ class SublimeSyntax:
             {'meta_scope': meta_scope},
             {'match': '', 'pop': 2},
         ]
-        pass
 
     @enqueue_todo(_meta_context)
     def _meta_name(self, nt):
-        return f'{self._nonterminal_name(nt)}@meta!'
+        return f'{self._nonterminal_name(nt, compute=False)}@meta!'
 
     # ---
 
@@ -464,7 +467,7 @@ class SublimeSyntax:
 
     @enqueue_todo(_meta_wrapper_context)
     def _meta_wrapper_name(self, nt):
-        return f'{self._nonterminal_name(nt)}@wrap_meta!'
+        return f'{self._nonterminal_name(nt, compute=False)}@wrap_meta!'
 
     # ---
 
@@ -502,3 +505,12 @@ class SublimeSyntax:
                 return self._nonterminal_name(symbol)
             return self._meta_wrapper_name(symbol)
         return self._terminal_name(symbol)
+
+    # ---
+
+    def _skip_follow(self, nt):
+        if len(self.grammar.follow[nt]) == 0:
+            return True
+        return any(
+            t.passive for t in self.grammar.follow[nt] if t is not None
+        )
