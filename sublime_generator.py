@@ -303,25 +303,6 @@ class SublimeSyntax:
 
     # ---
 
-    def _p_branch_context(self, p_nt, indices):
-        branch_name = self._p_branch_name(p_nt, indices)
-        branches = [
-            self._p_branch_item_name(p_nt, indices, i)
-            for i in indices
-        ]
-        branches.append('consume!')
-        return [{
-            'match': '',
-            'branch_point': branch_name,
-            'branch': L(branches),
-        }]
-
-    @enqueue_todo(_p_branch_context)
-    def _p_branch_name(self, p_nt, indices):
-        return f'{self._nonterminal_name(p_nt, compute=False)}@{",".join([str(i) for i in indices])}'
-
-    # ---
-
     def _np_np_branch_item_context(self, np_nt, indices, i, last):
         fail_name = 'pop3!' if last else \
             self._np_np_branch_fail_name(np_nt, indices)
@@ -374,40 +355,6 @@ class SublimeSyntax:
     @enqueue_todo(_np_p_branch_fail_context)
     def _np_p_branch_fail_name(self, np_nt, indices):
         return f'{self._np_p_branch_name(np_nt, indices, compute=False)}@fail!'
-
-    # ---
-
-    def _p_branch_item_context(self, p_nt, indices, i):
-        fail_name = self._p_branch_fail_name(p_nt, indices)
-
-        skip_follow = self._skip_follow(p_nt)
-        if not skip_follow:
-            follow = [self._follow_name(p_nt), 'pop2!']
-        else:
-            follow = []
-
-        if self.grammar.rules[np(p_nt)].option_list:
-            meta = [self._meta_name(p_nt), 'pop2!']
-        else:
-            meta = []
-
-        return [{
-            'match': '',
-            'set': L(['pop5!', fail_name] + follow + meta + [self._production_name(np(p_nt), i)])
-        }]
-
-    @enqueue_todo(_p_branch_item_context)
-    def _p_branch_item_name(self, p_nt, indices, i):
-        return f'{self._p_branch_name(p_nt, indices, compute=False)}!{i}'
-
-    # ---
-
-    def _p_branch_fail_context(self, p_nt, indices):
-        return [{'match': '', 'fail': self._p_branch_name(p_nt, indices)}]
-
-    @enqueue_todo(_p_branch_fail_context)
-    def _p_branch_fail_name(self, p_nt, indices):
-        return f'{self._p_branch_name(p_nt, indices, compute=False)}@fail!'
 
     # ---
 
