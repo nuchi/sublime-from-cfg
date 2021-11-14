@@ -1,3 +1,4 @@
+from dataclasses import replace
 from functools import wraps
 
 from bnf import (
@@ -135,24 +136,13 @@ def process_passive(item, to_do, proto):
         return process_passive(item.sub, to_do, proto)
 
     if isinstance(item, Terminal):
-        item = Terminal(item.regex, item.options, True, embed=item.embed, include=item.include)
-        return process_passive(
-            Alternation(
-                [Concatenation([item])],
-                None if proto else NO_PROTO,
-            ), to_do, proto)
+        return replace(item, passive=True)
 
     if isinstance(item, Nonterminal):
-        if item.passive:
-            return item
         # Note that we do *not* add to the to_do list because we don't need
         # a new rule for the new nonterminal -- we only treat it differently
         # when it appears inside a production.
-        return Nonterminal(
-            item.name,
-            item.args,
-            passive=True
-        )
+        return replace(item, passive=True)
 
     if isinstance(item, Alternation):
         return process_passive(process_item(item, to_do, proto), to_do, proto)

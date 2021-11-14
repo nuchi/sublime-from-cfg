@@ -1,6 +1,6 @@
 from collections import defaultdict
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import functools
 from hashlib import sha256
 from typing import Optional, Union
@@ -188,7 +188,7 @@ class NonLeftRecursiveGrammar:
                 return [set([Terminal(symbol.regex, passive=symbol.passive)])]
 
             if symbol.passive:
-                non_passive_nt = Nonterminal(symbol.symbol, symbol.args, False)
+                non_passive_nt = replace(symbol, passive=False)
                 first_sets = self._get_first_sets(non_passive_nt)
                 first_sets = [
                     set([
@@ -209,7 +209,7 @@ class NonLeftRecursiveGrammar:
     def _generate_follow_sets(self):
         nonpassive_and_passive = set(self.rules)
         for nt in self.rules:
-            passive_nt = Nonterminal(nt.symbol, nt.args, True)
+            passive_nt = replace(nt, passive=True)
             nonpassive_and_passive.add(passive_nt)
 
         follow_sets = {nt: set() for nt in nonpassive_and_passive}

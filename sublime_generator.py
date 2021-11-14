@@ -1,3 +1,4 @@
+from dataclasses import replace
 from functools import wraps
 
 from bnf import NonLeftRecursiveGrammar, Terminal, Nonterminal, Concatenation
@@ -18,28 +19,35 @@ def L(l):
 def enqueue_todo(_f_context):
     def decorator(_f_name):
         @wraps(_f_name)
-        def new_f(self, *args, compute=None):
+        def new_f(self, *args, compute=None, proto=True):
             name = _f_name(self, *args)
+
+            if not proto:
+                name = '^' + name
+
             if compute is None:
                 if isinstance(name, tuple):
                     name, compute = name
                 else:
                     compute = True
+
             if compute:
-                if (existing := self.seen_already.get(name, (_f_context, args))) != (_f_context, args):
+                triple = (_f_context, args, proto)
+                if (existing := self.seen_already.get(name, triple)) != triple:
                     print('repeated name with different context:', name)
                     print('existing:', existing)
-                    print('new:' , (_f_context, args))
+                    print('new:' , triple)
                     raise ValueError('already seen')
-                self.seen_already[name] = (_f_context, args)
-                self.to_do.append((name, _f_context, args))
+                self.seen_already[name] = (_f_context, args, proto)
+                self.to_do.append((name, _f_context, args, proto))
+
             return name
         return new_f
     return decorator
 
 
-def np(nt):
-    return Nonterminal(nt.symbol, nt.args, False)
+def np(s):
+    return replace(s, passive=False)
 
 
 class SublimeSyntax:
@@ -123,10 +131,12 @@ class SublimeSyntax:
         if (proto := Nonterminal('prototype') in grammar.rules):
             _ = self._symbol_name(Nonterminal('prototype'))
         while self.to_do:
-            name, _f_context, args = self.to_do.pop(-1)
+            name, _f_context, args, proto = self.to_do.pop(-1)
             if name in self.contexts:
                 continue
             ctx = _f_context(self, *args)
+            if not proto:
+                ctx.insert(0, {'meta_include_prototype': False})
             self.contexts[name] = ctx
 
     def dump(self):
@@ -199,7 +209,16 @@ class SublimeSyntax:
     def _nonterminal_np_p_name(self, np_nt):
         return f'{self._nonterminal_name(np_nt, compute=False)}@p!'
 
-    def _nonterminal_p(self, p_nt):
+    def _nonterminal_context(self, np_nt):
+        return self._nonterminal_np_np(np_nt, bool(self.p_table[np_nt]))
+
+    @enqueue_todo(_nonterminal_context)
+    def _nonterminal_name(self, np_nt):
+        return np_nt.name
+
+    # ---
+
+    def _nonterminal_p_preface_context(self, p_nt):
         p_table = dict(self.p_table[p_nt])
         np_table = dict(self.np_table[p_nt])
         combined_table = {
@@ -211,18 +230,22 @@ class SublimeSyntax:
             sorted_indices = sorted(indices)
             context.append({
                 'match': f'(?={regex})',
-                'push': L(['pop2!', self._p_branch_name(p_nt, sorted_indices)]),
+                'pop': 2,
             })
         return context
 
-    def _nonterminal_context(self, nt):
-        if not nt.passive:
-            return self._nonterminal_np_np(nt, bool(self.p_table[nt]))
-        return self._nonterminal_p(nt)
+    @enqueue_todo(_nonterminal_p_preface_context)
+    def _nonterminal_p_preface_name(self, p_nt):
+        return f'{self._nonterminal_name(np(p_nt), compute=False)}@pp!'
 
-    @enqueue_todo(_nonterminal_context)
-    def _nonterminal_name(self, nt):
-        return nt.name
+    # ---
+
+    def _terminal_p_preface_context(self, pt):
+        return [{'match': f'(?={pt.regex})', 'pop': 2}]
+
+    @enqueue_todo(_terminal_p_preface_context)
+    def _terminal_p_preface_name(self, pt):
+        return f'{self._terminal_name(np(pt), compute=False)}@pp!'
 
     # ---
 
@@ -420,7 +443,19 @@ class SublimeSyntax:
 
         production_stack = []
         for symbol in production.concats[::-1]:
-            production_stack.extend([self._symbol_name(symbol), 'pop2!'])
+            if not symbol.passive:
+                production_stack.extend([self._symbol_name(symbol), 'pop2!'])
+            elif isinstance(symbol, Nonterminal):
+                production_stack.extend([
+                    self._symbol_name(np(symbol)), 'pop2!',
+                    self._nonterminal_p_preface_name(symbol), 'pop2!'
+                ])
+            else:
+                production_stack.extend([
+                    self._symbol_name(np(symbol)), 'pop2!',
+                    self._terminal_p_preface_name(symbol), 'pop2!'
+                ])
+
         return production_stack[:-1]
 
     def _production_context(self, np_nt, index):
