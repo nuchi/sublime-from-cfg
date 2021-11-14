@@ -51,7 +51,7 @@ class Terminal(Symbol, OptionsHaver):
     def __str__(self):
         return ('~' if self.passive else '') \
             + (f"'{self.regex}'") \
-            + (f'{{{self.scope}}}' if self.scope else '')
+            + (f'{{{self.options}}}' if self.options else '')
 
     @property
     def _name(self):

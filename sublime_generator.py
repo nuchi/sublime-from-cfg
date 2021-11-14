@@ -99,10 +99,11 @@ class SublimeSyntax:
         self.scope = scope
 
         self.contexts = {
+            'pop1!': [{'match': '', 'pop': 1}],
             'pop2!': [{'match': '', 'pop': 2}],
             'pop3!': [{'match': '', 'pop': 3}],
             'pop5!': [{'match': '', 'pop': 5}],
-            'consume!': [{'match': r'\S', 'scope': f'region.redish.{self.scope}', 'pop': 3}],
+            'consume!': [{'match': r'\S', 'scope': f'meta.consume.{self.scope}', 'pop': 3}],
             'fail!': [{'match': r'(?=\S)', 'pop': 1}],
             'fail_forever!': [{'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'}],
             'main': [{'match': '', 'push': L([
@@ -150,6 +151,14 @@ class SublimeSyntax:
 
     # ---
 
+    def _production_action(self, np_nt, production):
+        if len(production.concats) == 0:
+            return {'pop': 2}
+        production_stack = self._production_stack(production)
+        if np(production.concats[-1]) == np_nt:
+            return {'push': L(production_stack[1:])}
+        return {'set': L(production_stack)}
+
     def _nonterminal_np_np(self, np_nt, passive_exists):
         np_table = self.np_table[np_nt]
         if not np_table:
@@ -158,35 +167,25 @@ class SublimeSyntax:
             return self._nonterminal_np_p(np_nt)
         context = []
         prods = self.grammar.rules[np_nt].productions
+        skip_follow = self._skip_follow(np_nt)
 
         if len(prods) == 1:
-            target = self._production_stack(prods[0])
-            if len(target) == 0:
-                return [{'match': '', 'pop': 2}]
-            return [{'match': '', 'set': L(target)}]
+            match = {'match': ''}
+            action = self._production_action(np_nt, prods[0])
+            return [{**match, **action}]
 
         for regex, indices in np_table:
+            match = {'match': f'(?={regex})'}
             sorted_indices = sorted(indices)
-            if passive_exists or len(sorted_indices) > 1:
-                context.append({
-                    'match': f'(?={regex})',
-                    'set': self._np_np_branch_name(np_nt, sorted_indices),
-                })
-            else:
-                # go directly to this production
-                match = {'match': f'(?={regex})'}
-                production = self.grammar.rules[np_nt].productions[sorted_indices[0]]
-                if (pc := production.concats) and pc[-1] == np_nt:
-                    action = {
-                        'push': L(['pop2!']
-                            + self._production_stack(Concatenation(pc[:-1])))
-                    }
-                else:
-                    action = {
-                        'set': self._production_name(np_nt, sorted_indices[0]),
-                    }
-                match.update(**action)
-                context.append(match)
+            if len(sorted_indices) == 1:
+                production = prods[sorted_indices[0]]
+                if not passive_exists or (skip_follow and len(production.concats) == 0):
+                    action = self._production_action(np_nt, production)
+                    context.append({**match, **action})
+                    continue
+
+            action = {'set': self._np_np_branch_name(np_nt, sorted_indices)}
+            context.append({**match, **action})
 
         if passive_exists:
             context.append({'match': r'(?=\S)', 'set': self._nonterminal_np_p_name(np_nt)})
@@ -197,12 +196,17 @@ class SublimeSyntax:
     def _nonterminal_np_p(self, np_nt):
         p_table = self.p_table[np_nt]
         context = []
+        skip_follow = self._skip_follow(np_nt)
         for regex, indices in p_table:
+            match = {'match': f'(?={regex})'}
             sorted_indices = sorted(indices)
-            context.append({
-                'match': f'(?={regex})',
-                'push': L(['pop2!', self._np_p_branch_name(np_nt, sorted_indices)]),
-            })
+            if len(sorted_indices) == 1 \
+                    and skip_follow \
+                    and not self.grammar.rules[np_nt].productions[sorted_indices[0]].concats:
+                action = {'pop': 2}
+            else:
+                action = {'push': L(['pop2!', self._np_p_branch_name(np_nt, sorted_indices)])}
+            context.append({**match, **action})
         return context
 
     @enqueue_todo(_nonterminal_np_p)
@@ -334,17 +338,22 @@ class SublimeSyntax:
     def _np_p_branch_item_context(self, np_nt, indices, i):
         fail_name = self._np_p_branch_fail_name(np_nt, indices)
         skip_follow = self._skip_follow(np_nt)
+        production = self.grammar.rules[np_nt].productions[i]
+        production_stack = self._production_stack(production)
         if not skip_follow:
             follow = [self._follow_name(np_nt), 'pop2!']
         else:
             follow = []
         return [{
             'match': '',
-            'set': L(['pop5!', fail_name] + follow + [self._production_name(np_nt, i)])
+            'set': L(['pop5!', fail_name] + follow + production_stack)
         }]
 
     @enqueue_todo(_np_p_branch_item_context)
     def _np_p_branch_item_name(self, np_nt, indices, i):
+        if (self._skip_follow(np_nt) and not self.grammar.rules[np_nt].productions[i].concats):
+            return 'pop5!', False
+
         return f'{self._np_p_branch_name(np_nt, indices, compute=False)}!{i}'
 
     # ---
@@ -465,7 +474,7 @@ class SublimeSyntax:
         elif t.include:
             (include_symbol,), include_options = t.include
             action = {
-                'set': include_options,
+                'set': L(['pop2!', 'pop1!', include_options]),
                 'with_prototype': [{'include': self._nonterminal_name(include_symbol)}],
             }
         else:
@@ -496,3 +505,5 @@ class SublimeSyntax:
         return any(
             t.passive for t in self.grammar.follow[nt] if t is not None
         )
+
+    # ---
