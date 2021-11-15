@@ -98,25 +98,6 @@ class SublimeSyntax:
         self.file_extensions = file_extensions
         self.scope = scope
 
-        self.contexts = {
-            'pop1!': [{'match': '', 'pop': 1}],
-            'pop2!': [{'match': '', 'pop': 2}],
-            'pop3!': [{'match': '', 'pop': 3}],
-            'pop5!': [{'match': '', 'pop': 5}],
-            'consume!': [{'match': r'\S', 'scope': f'meta.consume.{self.scope}', 'pop': 3}],
-            'fail!': [{'match': r'(?=\S)', 'pop': 1}],
-            'fail_forever1!': [
-                {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
-                {'match': r'\n', 'push': L(['fail_forever2!', grammar.start.name])}
-            ],
-            'fail_forever2!': [
-                {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
-                {'match': r'\n', 'push': grammar.start.name}
-            ],
-            'main': [{'match': '', 'push': L([
-                'fail_forever1!', 'fail_forever2!', grammar.start.name
-            ])}]
-        }
         self.np_table = {}
         self.p_table = {}
         for nt, (np_table, p_table) in grammar.table.items():
@@ -135,7 +116,27 @@ class SublimeSyntax:
 
         self.to_do = []
         self.seen_already = {}
-        _ = self._symbol_name(grammar.start)
+
+        self.contexts = {
+            'pop1!': [{'match': '', 'pop': 1}],
+            'pop2!': [{'match': '', 'pop': 2}],
+            'pop3!': [{'match': '', 'pop': 3}],
+            'pop5!': [{'match': '', 'pop': 5}],
+            'consume!': [{'match': r'\S', 'scope': f'meta.consume.{self.scope}', 'pop': 3}],
+            'fail!': [{'match': r'(?=\S)', 'pop': 1}],
+            'fail_forever1!': [
+                {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
+                {'match': r'\n', 'push': L(['fail_forever2!', self._symbol_name(grammar.start)])}
+            ],
+            'fail_forever2!': [
+                {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
+                {'match': r'\n', 'push': self._symbol_name(grammar.start)}
+            ],
+            'main': [{'match': '', 'push': L([
+                'fail_forever1!', 'fail_forever2!', self._symbol_name(grammar.start)
+            ])}]
+        }
+
         if (proto := Nonterminal('prototype') in grammar.rules):
             _ = self._symbol_name(Nonterminal('prototype'))
         while self.to_do:
@@ -534,7 +535,7 @@ class SublimeSyntax:
 
     # ---
 
-    # Called only from _production_stack
+    # Called only from _production_stack and generating 'main'
     def _symbol_name(self, symbol, proto=True):
         if isinstance(symbol, Nonterminal):
             if symbol.passive or not self.grammar.rules[np(symbol)].option_list:

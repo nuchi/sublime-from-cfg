@@ -40,6 +40,10 @@ class OptionsHaver:
         return [o for o in self._options_list if ':' not in o]
 
 
+class Skip(Symbol):
+    pass
+
+
 @dataclass(frozen=True)
 class Terminal(Symbol, OptionsHaver):
     regex: str
