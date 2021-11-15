@@ -118,7 +118,8 @@ def rewrite_alternation(nt, alt, to_do):
         if not isinstance(expr, Alternation):
             return expr
         new_nt = Nonterminal(f'/alt-{num}/{nt.name}')
-        to_do.append((new_nt, expr))
+        to_do.append((new_nt, replace(
+            expr, options=None if alt.proto else NO_PROTO)))
         num += 1
         return new_nt
 
