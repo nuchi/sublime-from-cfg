@@ -515,7 +515,21 @@ class SublimeSyntax:
             match['scope'] = ' '.join([f'{s}.{self.scope}' for s in t.option_list])
 
         if t.embed:
-            raise NotImplementedError('embed terminal: not yet')
+            (embed_regex,), embed_options = t.embed
+            embed_options = [o.strip() for o in embed_options.split(',')]
+            embed = embed_options.pop(0)
+            action = {'embed': embed, 'escape': embed_regex.regex}
+            if embed_options:
+                if ':' not in embed_options[0]:
+                    action['embed_scope'] = embed_options.pop(0)
+                for o in embed_options:
+                    action['escape_captures'] = {}
+                    try:
+                        k, v = o.split(':')
+                        action['escape_captures'][int(k.strip())] = f'{v.strip()}.{self.scope}'
+                    except Exception:
+                        raise ValueError(f'Bad capture group, expected <int>: <scope>. Found: {o}')
+            action['pop'] = 2
         elif t.include:
             (include_symbol,), include_options = t.include
             action = {

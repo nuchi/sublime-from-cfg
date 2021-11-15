@@ -266,7 +266,6 @@ class SbnfParser(Parser):
                 return self.variables[U_IDENT]()
             return Nonterminal(U_IDENT)
         return get_u_ident_param
-        # return lambda **context: Terminal(self.variables[U_IDENT]())
 
     @_('literal_or_regex')
     def argument(self, p):
@@ -297,8 +296,6 @@ class SbnfParser(Parser):
     def production(self, p):
         return lambda **context: Concatenation([])
 
-    # Restore this when passives are implemented for things other than terminals
-    # @_('pattern_item [ star_or_question ]')
     @_('[ PASSIVE ] pattern_item [ star_or_question ]')
     def pattern_element(self, p):
         pattern_item = p.pattern_item
@@ -377,10 +374,9 @@ class SbnfParser(Parser):
             return Terminal(regex, options(**context))
         return expand_u_ident
 
-
-    @_('LBRACE OPTIONS RBRACE')
+    @_('LBRACE [ OPTIONS ] RBRACE')
     def options(self, p):
-        OPTIONS = p.OPTIONS
+        OPTIONS = p.OPTIONS if p.OPTIONS is not None else ''
         return lambda **context: OPTIONS.format(**context)
 
     @_('PERC embed_or_include_token arguments options')
@@ -395,14 +391,15 @@ class SbnfParser(Parser):
     def literal_or_regex(self, p):
         return p[0]
 
-    @_('QUOTE REGEX QUOTE')
+    @_('QUOTE [ REGEX ] QUOTE')
     def regex(self, p):
-        reg = p.REGEX
+        reg = p.REGEX if p.REGEX is not None else ''
         return lambda **context: reg.format(**context)
 
-    @_('BTICK LITERAL BTICK')
+    @_('BTICK [ LITERAL ] BTICK')
     def literal(self, p):
-        as_regex = re.escape(p.LITERAL).replace('{', '{{').replace('}', '}}')
+        LITERAL = p.LITERAL if p.LITERAL is not None else ''
+        as_regex = re.escape(LITERAL).replace('{', '{{').replace('}', '}}')
         return lambda **context: as_regex.format(**context)
 
     def error(self, token):
