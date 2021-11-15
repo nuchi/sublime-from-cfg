@@ -20,26 +20,27 @@ This project shares the goal of automatically generating a Sublime-syntax file w
 
 ### Differences between this project and sbnf
 
-[One of sbnf's goals](https://crates.io/crates/sbnf) is to "Compile to an efficient syntax, comparable to hand-made ones". That is not a goal of this project. There are some things that I do inefficiently that I don't plan to change. For example, sometimes I push contexts onto the stack which do nothing and immediately pop out. It's easier to have my implementation generate this than to special-case it and optimize it away.
-
-Regarding features, while there are some features that sbnf has that I don't yet implement, there are also some implementation details that I don't plan to change, that will make some things not portable between the two projects. I list these below.
-
-#### `prototype`
-
-I implement a "prototype" feature (i.e. a rule that gets automatically included everywhere) but I _don't_ use Sublime Text's native prototype feature to do that. Instead, I inject the `prototype` rule explicitly between every pair of symbols. The practical difference is that you'll have to slightly change your prototype definitions. For example:
-```diff
-- prototype : ( ~comment )* ;
-+ prototype : comment* ;
-  comment{comment.line.number-sign} : '#+'{punctuation.definition.comment}
-                                      ~'$\n?'
-                                    ;
-
-```
-Note that the `~` symbol should no longer be included.
+[One of sbnf's goals](https://crates.io/crates/sbnf) is to "Compile to an efficient syntax, comparable to hand-made ones". That is not explicitly a goal of this project. There may be some small differences in implementation; I list some examples below.
 
 #### `main` is not implicitly repeated
 
-In sbnf, the rule `main : 'a' ;` will match any number of repeated `a` characters. In sublime-from-cfg, only one `a` will be matched.
+In sbnf, the rule `main : 'a' ;` will match any number of repeated `a` characters. In sublime-from-cfg, only one `a` will be matched. The parser will mark an invalid parse, and then reset at the beginning of the next new line (so that the whole rest of the document is not marked invalid).
+
+#### `<>` represents an empty production
+
+While sublime-from-cfg automatically rewrites rules involving `?` (optional) and `*` (repetition), you can take extra control of the rule-rewriting by explicitly indicating an empty production via `<>`. For example, the following rewrite is done automatically:
+```diff
+- a  : b c* d ;
++ a  : b a' ;
++ a' : d
++    | c d ;
+```
+But if you prefer a different rewrite, you can explicitly write something like:
+```
+a     : b c-rep d ;
+c-rep : <>
+      | c c-rep ;
+```
 
 ## TO-DO:
 
@@ -51,7 +52,8 @@ In sbnf, the rule `main : 'a' ;` will match any number of repeated `a` character
     - [x] Handle options for scope, meta_scope
     - [x] Handle options for include-prototype, captures
     - [x] Handle `prototype`
-    - [ ] Handle `%embed` and `%include`
+    - [x] Handle `%embed` and `%include`
     - [ ] Handle global parameters
+    - [ ] Handle command-line parameters
 - [ ] Detect whether the input grammar is follow-determined. This may be undecidable for all I know.
 - [ ] Automatically rewrite rules involving left recursion

@@ -124,16 +124,18 @@ class SublimeSyntax:
             'pop5!': [{'match': '', 'pop': 5}],
             'consume!': [{'match': r'\S', 'scope': f'meta.consume.{self.scope}', 'pop': 3}],
             'fail!': [{'match': r'(?=\S)', 'pop': 1}],
-            'fail_forever1!': [
+            'fail1!': [{'match': r'\S', 'scope': f'invalid.illegal.{self.scope}', 'set': 'reset1!'}],
+            'reset1!': [
                 {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
-                {'match': r'\n', 'push': L(['fail_forever2!', self._symbol_name(grammar.start)])}
+                {'match': r'\n', 'set': L(['fail1!', 'fail2!', self._symbol_name(grammar.start)])}
             ],
-            'fail_forever2!': [
+            'fail2!': [{'match': r'\S', 'scope': f'invalid.illegal.{self.scope}', 'set': 'reset2!'}],
+            'reset2!': [
                 {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
-                {'match': r'\n', 'push': self._symbol_name(grammar.start)}
+                {'match': r'\n', 'set': L(['fail2!', self._symbol_name(grammar.start)])}
             ],
             'main': [{'match': '', 'push': L([
-                'fail_forever1!', 'fail_forever2!', self._symbol_name(grammar.start)
+                'fail1!', 'fail2!', self._symbol_name(grammar.start)
             ])}]
         }
 
