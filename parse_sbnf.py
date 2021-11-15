@@ -50,6 +50,24 @@ class _PrintLineNumber:
         return super().error(t)
 
 
+def _expand(key, context):
+    val = context[key]
+    while callable(val):
+        val = val(**context)
+    return val
+
+
+def _format(s, context):
+    class _Context(dict):
+        def __getitem__(self, k):
+            ret = _expand(k, {**self})
+            if isinstance(ret, Terminal):
+                return ret.regex
+            return ret
+    _context = _Context(**context)
+    return s.format_map(_context)
+
+
 class SbnfLexer(_PrintLineNumber, Lexer):
     tokens = {
         'EMBED',
@@ -197,34 +215,36 @@ class SbnfParser(Parser):
            | RegexLexer.tokens \
            | OptionsLexer.tokens
 
-    def __init__(self, text):
+    def __init__(self, text, global_args):
         self.variables = {}
         self.to_do = set()
         self.zero_arg_rules = {}
         self.parameterized_rules = {}
-        self.make_grammar(text)
+        self.global_params = []
+        self.make_grammar(text, global_args)
 
-    @_('{ parameters } { variable|rule }')
+    @_('[ parameters ] { variable|rule }')
     def main(self, p):
-        if len(p.parameters) > 0:
-            raise NotImplementedError('Global parameters not yet supported.')
+        if p.parameters is not None:
+            for nt in p.parameters():
+                self.global_params.append(nt.symbol)
         return p
 
     @_('U_IDENT IDENT_DEF variable_defn')
     def variable(self, p):
         var_defn = p.variable_defn
-        self.variables[p.U_IDENT] = lambda: var_defn()
+        self.variables[p.U_IDENT] = lambda **context: var_defn(**context)
         return p
 
     @_('literal_or_regex')
     def variable_defn(self, p):
         p0 = p[0]
-        return lambda: p0()
+        return lambda **context: p0(**context)
 
     @_('U_IDENT')
     def variable_defn(self, p):
         p0 = p[0]
-        return lambda: self.variables[p0]()
+        return p0 # lambda **context: self.variables[p0](**context)
 
     @_('IDENT [ parameters ] [ options ] RULE_DEF alternates RULE_END')
     def rule(self, p):
@@ -261,11 +281,7 @@ class SbnfParser(Parser):
     @_('U_IDENT')
     def parameter(self, p):
         U_IDENT = p.U_IDENT
-        def get_u_ident_param(**context):
-            if U_IDENT in self.variables:
-                return self.variables[U_IDENT]()
-            return Nonterminal(U_IDENT)
-        return get_u_ident_param
+        return lambda **context: context.get(U_IDENT, Nonterminal(U_IDENT))
 
     @_('literal_or_regex')
     def argument(self, p):
@@ -280,7 +296,7 @@ class SbnfParser(Parser):
     @_('U_IDENT')
     def argument(self, p):
         U_IDENT = p.U_IDENT
-        return lambda **context: Terminal(self.variables[U_IDENT]())
+        return lambda **context: Terminal(_expand(U_IDENT, context))
 
     @_('production { ALT production }')
     def alternates(self, p):
@@ -366,18 +382,12 @@ class SbnfParser(Parser):
     def pattern_item(self, p):
         U_IDENT = p.U_IDENT
         options = p.options or (lambda **context: None)
-        def expand_u_ident(**context):
-            if U_IDENT in self.variables:
-                regex = self.variables[U_IDENT]()
-            else:
-                regex = context[U_IDENT].regex
-            return Terminal(regex, options(**context))
-        return expand_u_ident
+        return lambda **context: Terminal(_expand(U_IDENT, context), options(**context))
 
     @_('LBRACE [ OPTIONS ] RBRACE')
     def options(self, p):
         OPTIONS = p.OPTIONS if p.OPTIONS is not None else ''
-        return lambda **context: OPTIONS.format(**context)
+        return lambda **context: _format(OPTIONS, context)
 
     @_('PERC embed_or_include_token arguments options')
     def embed_include(self, p):
@@ -394,13 +404,13 @@ class SbnfParser(Parser):
     @_('QUOTE [ REGEX ] QUOTE')
     def regex(self, p):
         reg = p.REGEX if p.REGEX is not None else ''
-        return lambda **context: reg.format(**context)
+        return lambda **context: _format(reg, context)
 
     @_('BTICK [ LITERAL ] BTICK')
     def literal(self, p):
         LITERAL = p.LITERAL if p.LITERAL is not None else ''
         as_regex = re.escape(LITERAL).replace('{', '{{').replace('}', '}}')
-        return lambda **context: as_regex.format(**context)
+        return lambda **context: _format(as_regex, context)
 
     def error(self, token):
         super().error(token)
@@ -445,16 +455,19 @@ class SbnfParser(Parser):
                 actual_rules[nt] = rule(**new_context)
         return actual_rules
 
-    def make_grammar(self, text):
+    def make_grammar(self, text, global_args):
         lexer = SbnfLexer()
         self.parse(lexer.tokenize(text))
-        self.main_rules = self.make_actualized_rules(Nonterminal('main'), {})
+        context = {}
+        for param, arg in zip(self.global_params, global_args):
+            context[param] = arg
+        context.update(self.variables)
+        self.main_rules = self.make_actualized_rules(Nonterminal('main'), context)
         if ('prototype', tuple()) in self.parameterized_rules:
-            self.proto_rules = self.make_actualized_rules(Nonterminal('prototype'), {})
+            self.proto_rules = self.make_actualized_rules(Nonterminal('prototype'), context)
         else:
             self.proto_rules = {}
         self.actual_rules = {
             'main': self.main_rules,
             'prototype': self.proto_rules,
         }
-

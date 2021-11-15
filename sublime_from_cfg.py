@@ -6,8 +6,8 @@ from transform_grammar import transform_grammar
 from sublime_generator import SublimeSyntax
 
 
-def sublime_from_cfg(text):
-    parser = SbnfParser(text)
+def sublime_from_cfg(text, global_args):
+    parser = SbnfParser(text, global_args)
 
     main_rules = parser.actual_rules['main']
     proto_rules = parser.actual_rules['prototype']

@@ -1,29 +1,17 @@
 from sublime_from_cfg import sublime_from_cfg
 
-# text = r"""
-# main : pattern ;
-# line : pattern `;` ;
-# pattern : pes (`|`{keyword.operator} pes)*;
-# pes : pe pe* ;
-# pe : pi `*`{keyword.operator}? ;
-# pi : '\w+'{variable.function} | group ;
-# group : `(` pattern `)` ;
+text = r'''
+[A, B]
 
-# prototype : ( ~comment )* ;
+A = ':::'
 
-# comment{comment.line.number-sign, include-prototype: false} : '#+'{punctuation.definition.comment}
-#                                     ~'$\n?'
-#                                   ;
+main : A b[B] ;
 
-# """
+b[X] : '#[X]' ;
 
-text = r"""
-main : ~'a' | 'b' ;
-"""
+'''
 
-
-
-ss = sublime_from_cfg(text)
+ss = sublime_from_cfg(text, ['```', '```'])
 print(ss.dump())
 
 
