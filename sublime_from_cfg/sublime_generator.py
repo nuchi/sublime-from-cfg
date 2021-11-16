@@ -1,11 +1,14 @@
 from dataclasses import replace
 from functools import wraps
+from typing import Optional
 
-from bnf import NonLeftRecursiveGrammar, Terminal, Nonterminal, Concatenation
 try:
     import ruamel_yaml as yaml
 except ImportError:
     from ruamel import yaml
+
+from .bnf import NonLeftRecursiveGrammar
+from .types import Terminal, Nonterminal, Concatenation, SublimeSyntaxOptions
 
 
 def L(l):
@@ -89,14 +92,11 @@ class SublimeSyntax:
     def __init__(
         self,
         grammar: NonLeftRecursiveGrammar,
-        syntax_name: str,
-        file_extensions: list[str],
-        scope: str,
+        options: SublimeSyntaxOptions,
     ):
         self.grammar = grammar
-        self.syntax_name = syntax_name
-        self.file_extensions = file_extensions
-        self.scope = scope
+        self.options = options
+        self.scope_postfix = options.scope_postfix
 
         self.np_table = {}
         self.p_table = {}
@@ -122,16 +122,16 @@ class SublimeSyntax:
             'pop2!': [{'match': '', 'pop': 2}],
             'pop3!': [{'match': '', 'pop': 3}],
             'pop5!': [{'match': '', 'pop': 5}],
-            'consume!': [{'match': r'\S', 'scope': f'meta.consume.{self.scope}', 'pop': 3}],
+            'consume!': [{'match': r'\S', 'scope': f'meta.consume{self.scope_postfix}', 'pop': 3}],
             'fail!': [{'match': r'(?=\S)', 'pop': 1}],
-            'fail1!': [{'match': r'\S', 'scope': f'invalid.illegal.{self.scope}', 'set': 'reset1!'}],
+            'fail1!': [{'match': r'\S', 'scope': f'invalid.illegal{self.scope_postfix}', 'set': 'reset1!'}],
             'reset1!': [
-                {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
+                {'match': r'\S', 'scope': f'invalid.illegal{self.scope_postfix}'},
                 {'match': r'\n', 'set': L(['fail1!', 'fail2!', self._symbol_name(grammar.start)])}
             ],
-            'fail2!': [{'match': r'\S', 'scope': f'invalid.illegal.{self.scope}', 'set': 'reset2!'}],
+            'fail2!': [{'match': r'\S', 'scope': f'invalid.illegal{self.scope_postfix}', 'set': 'reset2!'}],
             'reset2!': [
-                {'match': r'\S', 'scope': f'invalid.illegal.{self.scope}'},
+                {'match': r'\S', 'scope': f'invalid.illegal{self.scope_postfix}'},
                 {'match': r'\n', 'set': L(['fail2!', self._symbol_name(grammar.start)])}
             ],
             'main': [{'match': '', 'push': L([
@@ -151,13 +151,19 @@ class SublimeSyntax:
             self.contexts[name] = ctx
 
     def dump(self):
-        return yaml.round_trip_dump({
+        out = {
             'version': 2,
-            'name': self.syntax_name,
-            'file_extensions': self.file_extensions,
-            'scope': f'source.{self.scope}',
-            'contexts': self.contexts,
-        }, version='1.2')
+            'name': self.options.name,
+        }
+        if self.options.extensions:
+            out['file_extensions'] = self.options.extensions
+        if self.options.first_line:
+            out['first_line_match'] = self.options.first_line
+        out['scope'] = self.options.scope
+        if self.options.hidden:
+            out['hidden'] = True
+        out['contexts'] = self.contexts
+        return yaml.round_trip_dump(out, version='1.2')
 
     # ---
 
@@ -476,7 +482,7 @@ class SublimeSyntax:
         proto = self.grammar.rules[np(nt)].proto
         context = [] if proto else [{'meta_include_prototype': False}]
         meta_scopes = self.grammar.rules[np(nt)].option_list
-        meta_scope = ' '.join([f'{s}.{self.scope}' for s in meta_scopes])
+        meta_scope = ' '.join([f'{s}{self.scope_postfix}' for s in meta_scopes])
         return context + [
             {'meta_scope': meta_scope},
             {'match': '', 'pop': 2},
@@ -514,7 +520,7 @@ class SublimeSyntax:
         matches = [match]
 
         if t.option_list:
-            match['scope'] = ' '.join([f'{s}.{self.scope}' for s in t.option_list])
+            match['scope'] = ' '.join([f'{s}{self.scope_postfix}' for s in t.option_list])
 
         if t.embed:
             (embed_regex,), embed_options = t.embed
@@ -528,7 +534,7 @@ class SublimeSyntax:
                     action['escape_captures'] = {}
                     try:
                         k, v = o.split(':')
-                        action['escape_captures'][int(k.strip())] = f'{v.strip()}.{self.scope}'
+                        action['escape_captures'][int(k.strip())] = f'{v.strip()}{self.scope_postfix}'
                     except Exception:
                         raise ValueError(f'Bad capture group, expected <int>: <scope>. Found: {o}')
             action['pop'] = 2

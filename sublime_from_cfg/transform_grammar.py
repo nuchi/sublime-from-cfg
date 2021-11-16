@@ -1,8 +1,8 @@
 from dataclasses import replace
 from typing import Callable
 
-from bnf import Nonterminal, Alternation, Concatenation, Skip
-from parse_sbnf import (
+from .types import (
+    Nonterminal, Alternation, Concatenation, Skip,
     Repetition, OptionalExpr, Passive
 )
 

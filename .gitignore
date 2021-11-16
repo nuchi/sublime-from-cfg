@@ -1,3 +1,5 @@
 __pycache__/
 sublime-from-cfg.sublime-project
 sublime-from-cfg.sublime-workspace
+*.egg-info/
+dist/

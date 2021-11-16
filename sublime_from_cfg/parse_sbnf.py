@@ -1,47 +1,23 @@
 from collections import defaultdict
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import fields
 from functools import partial
 import re
-from typing import Optional, Union
+from typing import Union
 
 from sly import Lexer, Parser
 
-from bnf import (
-    Expression,
+from .types import (
     Terminal,
     Nonterminal,
     Alternation,
     Concatenation,
-    NonLeftRecursiveGrammar,
+    Repetition,
+    OptionalExpr,
+    Passive,
+    SublimeSyntaxOptions,
 )
-
-
-@dataclass(frozen=True)
-class Repetition(Expression):
-    sub: Expression
-
-    @property
-    def _name(self):
-        return '/*'
-
-
-@dataclass(frozen=True)
-class OptionalExpr(Expression):
-    sub: Expression
-
-    @property
-    def _name(self):
-        return '/opt'
-
-
-@dataclass(frozen=True)
-class Passive(Expression):
-    sub: Expression
-
-    @property
-    def _name(self):
-        return '/~'
+from .transform_grammar import transform_grammar
 
 
 class _PrintLineNumber:
@@ -222,6 +198,7 @@ class SbnfParser(Parser):
         self.parameterized_rules = {}
         self.global_params = []
         self.make_grammar(text, global_args)
+
 
     @_('[ parameters ] { variable|rule }')
     def main(self, p):
@@ -462,12 +439,18 @@ class SbnfParser(Parser):
         for param, arg in zip(self.global_params, global_args):
             context[param] = arg
         context.update(self.variables)
-        self.main_rules = self.make_actualized_rules(Nonterminal('main'), context)
+        main_rules = self.make_actualized_rules(Nonterminal('main'), context)
+        main_rules = transform_grammar(main_rules)
+
         if ('prototype', tuple()) in self.parameterized_rules:
-            self.proto_rules = self.make_actualized_rules(Nonterminal('prototype'), context)
+            proto_rules = self.make_actualized_rules(Nonterminal('prototype'), context)
+            proto_rules = transform_grammar(proto_rules)
         else:
-            self.proto_rules = {}
-        self.actual_rules = {
-            'main': self.main_rules,
-            'prototype': self.proto_rules,
-        }
+            proto_rules = {}
+
+        self.options = {}
+        for field in fields(SublimeSyntaxOptions):
+            if field.name in self.variables:
+                self.options[field.name] = _expand(field.name, context)
+
+        self.combined_rules = {**main_rules, **proto_rules}

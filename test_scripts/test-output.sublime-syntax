@@ -1,0 +1,60 @@
+%YAML 1.2
+---
+version: 2
+name: blah
+file_extensions:
+- a
+- b
+- c
+first_line_match: \#\!.*
+scope: source.heeeey
+hidden: true
+contexts:
+  pop1!:
+  - match: ''
+    pop: 1
+  pop2!:
+  - match: ''
+    pop: 2
+  pop3!:
+  - match: ''
+    pop: 3
+  pop5!:
+  - match: ''
+    pop: 5
+  consume!:
+  - match: \S
+    scope: meta.consume.hey
+    pop: 3
+  fail!:
+  - match: (?=\S)
+    pop: 1
+  fail1!:
+  - match: \S
+    scope: invalid.illegal.hey
+    set: reset1!
+  reset1!:
+  - match: \S
+    scope: invalid.illegal.hey
+  - match: \n
+    set: [fail1!, fail2!, main/]
+  fail2!:
+  - match: \S
+    scope: invalid.illegal.hey
+    set: reset2!
+  reset2!:
+  - match: \S
+    scope: invalid.illegal.hey
+  - match: \n
+    set: [fail2!, main/]
+  main:
+  - match: ''
+    push: [fail1!, fail2!, main/]
+  main/:
+  - match: ''
+    set: /T/ba59bef
+  /T/ba59bef:
+  - match: a
+    scope: keyword.operator.hey
+    pop: 2
+  - include: fail!
