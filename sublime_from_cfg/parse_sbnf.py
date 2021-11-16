@@ -200,11 +200,15 @@ class SbnfParser(Parser):
         self.make_grammar(text, global_args)
 
 
-    @_('[ parameters ] { variable|rule }')
+    @_('[ parameters ] { variable_or_rule }')
     def main(self, p):
         if p.parameters is not None:
             for nt in p.parameters():
                 self.global_params.append(nt.symbol)
+        return p
+
+    @_('variable', 'rule')
+    def variable_or_rule(self, p):
         return p
 
     @_('U_IDENT IDENT_DEF variable_defn')
