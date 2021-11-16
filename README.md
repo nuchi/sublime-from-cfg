@@ -44,7 +44,7 @@ c-rep : <>
 
 ## TO-DO:
 
-- Accept a convenient text description of a grammar rather than require constructing a Python object by hand. [Benjamin Schaaf's sbnf](https://github.com/BenjaminSchaaf/sbnf/) is a project with essentially the same goals as this one, and has a very nice syntax for defining grammars so it'd be nice to allow inputs in that format.
+- [x] **Self-host.** Accept a convenient text description of a grammar rather than require constructing a Python object by hand. [Benjamin Schaaf's sbnf](https://github.com/BenjaminSchaaf/sbnf/) is a project with essentially the same goals as this one, and has a very nice syntax for defining grammars so it'd be nice to allow inputs in that format.
     - [x] Parse the sbnf file format
     - [x] Handle variables and rules
     - [x] Handle parameters
@@ -53,7 +53,7 @@ c-rep : <>
     - [x] Handle options for include-prototype, captures
     - [x] Handle `prototype`
     - [x] Handle `%embed` and `%include`
-    - [ ] Handle global parameters
-    - [ ] Handle command-line parameters
+    - [x] Handle global parameters
+    - [x] Handle command-line parameters
 - [ ] Detect whether the input grammar is follow-determined. This may be undecidable for all I know.
 - [ ] Automatically rewrite rules involving left recursion
