@@ -104,27 +104,27 @@ contexts:
   /opt//opt/3309a98:
   - match: (?=\[)
     set: parameters
+  - match: (?=~|!)
+    pop: 2
   - match: (?={)
-    pop: 2
-  - match: (?=[[:alnum:]_\-\.]+)
-    pop: 2
-  - match: (?=:)
-    pop: 2
-  - match: (?=\))
-    pop: 2
-  - match: (?=\|)
-    pop: 2
-  - match: (?=')
-    pop: 2
-  - match: (?=\*|\?)
     pop: 2
   - match: (?=`)
     pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=\*|\?)
+    pop: 2
+  - match: (?=\))
+    pop: 2
   - match: (?=\()
     pop: 2
-  - match: (?=~|!)
+  - match: (?=[[:alnum:]_\-\.]+)
     pop: 2
   - match: (?=;)
+    pop: 2
+  - match: (?=:)
+    pop: 2
+  - match: (?=')
     pop: 2
   - include: fail!
   parameters:
@@ -246,9 +246,9 @@ contexts:
       pop2!, ^/alt-0//alt-0//*-0/regex-prototype@pp!]
   ^/alt-0//alt-0//*-0/regex-prototype@pp!:
   - meta_include_prototype: false
-  - match: (?=\\')
-    pop: 2
   - match: (?=\#\[)
+    pop: 2
+  - match: (?=\\')
     pop: 2
   ^/alt-0//alt-0//*-0/regex-prototype:
   - meta_include_prototype: false
@@ -365,27 +365,27 @@ contexts:
   /opt//opt/8888166:
   - match: (?={)
     set: options
-  - match: (?=[[:alnum:]_\-\.]+)
+  - match: (?=~|!)
     pop: 2
-  - match: (?=:)
+  - match: (?=`)
+    pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=\*|\?)
     pop: 2
   - match: (?=\))
     pop: 2
-  - match: (?=\|)
+  - match: (?=\()
+    pop: 2
+  - match: (?=[[:alnum:]_\-\.]+)
+    pop: 2
+  - match: (?=;)
+    pop: 2
+  - match: (?=:)
     pop: 2
   - match: (?=')
     pop: 2
   - match: (?=%)
-    pop: 2
-  - match: (?=\*|\?)
-    pop: 2
-  - match: (?=`)
-    pop: 2
-  - match: (?=\()
-    pop: 2
-  - match: (?=~|!)
-    pop: 2
-  - match: (?=;)
     pop: 2
   - include: fail!
   options:
@@ -426,27 +426,27 @@ contexts:
   - include: fail!
   /*-0/options@follow!:
   - meta_include_prototype: false
-  - match: (?=[[:alnum:]_\-\.]+)
-    pop: 2
-  - match: (?=\*|\?)
-    pop: 2
-  - match: (?=~|!)
-    pop: 2
   - match: (?=%)
-    pop: 2
-  - match: (?=;)
-    pop: 2
-  - match: (?=:)
-    pop: 2
-  - match: (?=\))
-    pop: 2
-  - match: (?=\|)
     pop: 2
   - match: (?=')
     pop: 2
-  - match: (?=`)
+  - match: (?=:)
+    pop: 2
+  - match: (?=;)
+    pop: 2
+  - match: (?=[[:alnum:]_\-\.]+)
     pop: 2
   - match: (?=\()
+    pop: 2
+  - match: (?=\))
+    pop: 2
+  - match: (?=\*|\?)
+    pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=`)
+    pop: 2
+  - match: (?=~|!)
     pop: 2
   - include: fail!
   /*-0/options@p!@0@fail!:
@@ -497,15 +497,15 @@ contexts:
   - match: ''
     set: [/*-0/pattern, pop2!, production]
   production:
-  - match: (?=')
+  - match: (?=~|!)
     set: [/*-0/production, pop2!, pattern-element]
   - match: (?=`)
     set: [/*-0/production, pop2!, pattern-element]
-  - match: (?=[[:alnum:]_\-\.]+)
-    set: [/*-0/production, pop2!, pattern-element]
   - match: (?=\()
     set: [/*-0/production, pop2!, pattern-element]
-  - match: (?=~|!)
+  - match: (?=[[:alnum:]_\-\.]+)
+    set: [/*-0/production, pop2!, pattern-element]
+  - match: (?=')
     set: [/*-0/production, pop2!, pattern-element]
   - match: (?=<>)
     set: /T/9cdbf47
@@ -521,13 +521,13 @@ contexts:
   /opt//opt/428b5d8:
   - match: (?=~|!)
     set: /T/278075e
-  - match: (?=\()
-    pop: 2
-  - match: (?=')
-    pop: 2
   - match: (?=`)
     pop: 2
+  - match: (?=\()
+    pop: 2
   - match: (?=[[:alnum:]_\-\.]+)
+    pop: 2
+  - match: (?=')
     pop: 2
   - include: fail!
   /T/278075e:
@@ -548,23 +548,23 @@ contexts:
   /opt//opt/d4ca27c:
   - match: (?=%)
     set: embed-include
-  - match: (?=[[:alnum:]_\-\.]+)
-    pop: 2
-  - match: (?=\))
-    pop: 2
-  - match: (?=\|)
-    pop: 2
-  - match: (?=')
-    pop: 2
-  - match: (?=\*|\?)
+  - match: (?=~|!)
     pop: 2
   - match: (?=`)
     pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=\*|\?)
+    pop: 2
+  - match: (?=\))
+    pop: 2
   - match: (?=\()
     pop: 2
-  - match: (?=~|!)
+  - match: (?=[[:alnum:]_\-\.]+)
     pop: 2
   - match: (?=;)
+    pop: 2
+  - match: (?=')
     pop: 2
   - include: fail!
   embed-include:
@@ -607,21 +607,21 @@ contexts:
   /opt//opt/18fae41:
   - match: (?=\*|\?)
     set: /T/71c109c
-  - match: (?=[[:alnum:]_\-\.]+)
-    pop: 2
-  - match: (?=\))
-    pop: 2
-  - match: (?=\|)
-    pop: 2
-  - match: (?=')
+  - match: (?=~|!)
     pop: 2
   - match: (?=`)
     pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=\))
+    pop: 2
   - match: (?=\()
     pop: 2
-  - match: (?=~|!)
+  - match: (?=[[:alnum:]_\-\.]+)
     pop: 2
   - match: (?=;)
+    pop: 2
+  - match: (?=')
     pop: 2
   - include: fail!
   /T/71c109c:
@@ -630,15 +630,15 @@ contexts:
     pop: 2
   - include: fail!
   /*-0/production:
-  - match: (?=')
+  - match: (?=~|!)
     push: [pop2!, pattern-element]
   - match: (?=`)
     push: [pop2!, pattern-element]
-  - match: (?=[[:alnum:]_\-\.]+)
-    push: [pop2!, pattern-element]
   - match: (?=\()
     push: [pop2!, pattern-element]
-  - match: (?=~|!)
+  - match: (?=[[:alnum:]_\-\.]+)
+    push: [pop2!, pattern-element]
+  - match: (?=')
     push: [pop2!, pattern-element]
   - match: (?=\|)
     pop: 2

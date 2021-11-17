@@ -53,6 +53,15 @@ def np(s):
     return replace(s, passive=False)
 
 
+def _sorted(l):
+    key = lambda kv: tuple(sorted(kv[1])[::-1]) + (kv[0],)
+    return sorted(
+        l,
+        key=key,
+        reverse=True
+    )
+
+
 class SublimeSyntax:
     """
     Consume a context-free grammar and produce (via the `dump` method)
@@ -101,18 +110,8 @@ class SublimeSyntax:
         self.np_table = {}
         self.p_table = {}
         for nt, (np_table, p_table) in grammar.table.items():
-            sorted_np_table = sorted(
-                np_table.items(),
-                key=lambda kv: tuple(sorted(kv[1])[::-1]),
-                reverse=True,
-            )
-            sorted_p_table = sorted(
-                p_table.items(),
-                key=lambda kv: tuple(sorted(kv[1])[::-1]),
-                reverse=True,
-            )
-            self.np_table[nt] = sorted_np_table
-            self.p_table[nt] = sorted_p_table
+            self.np_table[nt] = _sorted(np_table.items())
+            self.p_table[nt] = _sorted(p_table.items())
 
         self.to_do = []
         self.seen_already = {}
@@ -246,10 +245,10 @@ class SublimeSyntax:
         combined_table = {
             regex: set.union(p_table.get(regex, set()), np_table.get(regex, set()))
             for regex in set(p_table).union(set(np_table))
-        }.items()
+        }
         proto = self.grammar.rules[np(p_nt)].proto
         context = [] if proto else [{'meta_include_prototype': False}]
-        for regex, indices in combined_table:
+        for regex, indices in _sorted(combined_table.items()):
             sorted_indices = sorted(indices)
             context.append({
                 'match': f'(?={regex})',
@@ -430,13 +429,11 @@ class SublimeSyntax:
 
     def _follow_context(self, nt):
         follow = self.grammar.follow[nt]
+        sorted_follow = sorted([t.regex for t in follow if t is not None and not t.passive])
         proto = self.grammar.rules[np(nt)].proto
         context = [] if proto else [{'meta_include_prototype': False}]
-        for t in follow:
-            if t is None:
-                continue
-            if not t.passive:
-                context.append({'match': f'(?={t.regex})', 'pop': 2})
+        for regex in sorted_follow:
+            context.append({'match': f'(?={regex})', 'pop': 2})
         context.append({'include': 'fail!'})
         return context
 
