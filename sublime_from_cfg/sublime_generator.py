@@ -54,7 +54,7 @@ def np(s):
 
 
 def _sorted(l):
-    key = lambda kv: tuple(sorted(kv[1])[::-1]) + (kv[0],)
+    key = lambda kv: (tuple(sorted(kv[1])[::-1]), kv[0])
     return sorted(
         l,
         key=key,

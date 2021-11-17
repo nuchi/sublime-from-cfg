@@ -39,7 +39,9 @@ def _format(s, context):
             ret = _expand(k, {**self})
             if isinstance(ret, Terminal):
                 return ret.regex
-            return ret
+            elif isinstance(ret, Nonterminal):
+                raise ValueError(f'Tried to interpolate a string with rule {ret.symbol}')
+            raise ValueError(f'Unknown thing in context: {repr(ret)}')
     _context = _Context(**context)
     return s.format_map(_context)
 
@@ -272,12 +274,12 @@ class SbnfParser(Parser):
     @_('IDENT')
     def argument(self, p):
         IDENT = p.IDENT
-        return lambda **context: Nonterminal(IDENT)
+        return lambda **context: _expand(IDENT, context)
 
     @_('U_IDENT')
     def argument(self, p):
         U_IDENT = p.U_IDENT
-        return lambda **context: Terminal(_expand(U_IDENT, context))
+        return lambda **context: _expand(U_IDENT, context)
 
     @_('production { ALT production }')
     def alternates(self, p):
