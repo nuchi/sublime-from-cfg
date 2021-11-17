@@ -32,6 +32,15 @@ class NonLeftRecursiveGrammar:
             for nt_ in self.rules
             for nt in (nt_, Nonterminal(nt_.symbol, nt_.args, passive=True))
         }
+        self.sort_table = {}
+        for t in self.terminals:
+            if 'sort' in t.option_kv:
+                value = t.option_kv['sort']
+                try:
+                    sort_value = int(value)
+                except ValueError:
+                    raise ValueError(f'"sort" option should specify an integer, found {value}')
+                self.sort_table[t.regex] = sort_value
 
     def _generate_tables(self, first_sets, follow_set):
         table = defaultdict(set)

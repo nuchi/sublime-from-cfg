@@ -53,12 +53,12 @@ def np(s):
     return replace(s, passive=False)
 
 
-def _sorted(l):
-    key = lambda kv: (tuple(sorted(kv[1])[::-1]), kv[0])
+def _sorted(l, sort_table):
+    def key(kv):
+        return (sort_table.get(kv[0], 0), tuple(sorted(kv[1])), kv[0])
     return sorted(
         l,
         key=key,
-        reverse=True
     )
 
 
@@ -110,8 +110,8 @@ class SublimeSyntax:
         self.np_table = {}
         self.p_table = {}
         for nt, (np_table, p_table) in grammar.table.items():
-            self.np_table[nt] = _sorted(np_table.items())
-            self.p_table[nt] = _sorted(p_table.items())
+            self.np_table[nt] = _sorted(np_table.items(), grammar.sort_table)
+            self.p_table[nt] = _sorted(p_table.items(), grammar.sort_table)
 
         self.to_do = []
         self.seen_already = {}
@@ -248,7 +248,7 @@ class SublimeSyntax:
         }
         proto = self.grammar.rules[np(p_nt)].proto
         context = [] if proto else [{'meta_include_prototype': False}]
-        for regex, indices in _sorted(combined_table.items()):
+        for regex, indices in _sorted(combined_table.items(), self.grammar.sort_table):
             sorted_indices = sorted(indices)
             context.append({
                 'match': f'(?={regex})',
