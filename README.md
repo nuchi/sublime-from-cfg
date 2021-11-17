@@ -42,6 +42,17 @@ c-rep : <>
       | c c-rep ;
 ```
 
+#### Setting sort precedence
+
+Sometimes a regular expression can match more than one part of a language, where for example a generic expression to match any identifier, like `[a-zA-Z][_a-zA-Z0-9]*`, will also match a reserved word like `import`. To make sure that the reserved word is always tried first, you can add a "sort" option:
+```
+IDENTIFIER = '[a-zA-Z][_a-zA-Z0-9]*'
+statement : IDENTIFIER{entity.name, sort: 1} `=` '\d+' `;`
+          | 'import'{keyword.operator} IDENTIFIER `;`
+          ;
+```
+At the moment, the same regular expression can only have one sort value across the whole file (defining it twice will pick one arbitrarily). The default value is 0, and smaller values are tried before larger values. In the example above, `'import'` has lower precedence (the default value 0) than `IDENTIFIER` (value 1), so the syntax engine will try to match `'import'` first.
+
 ## TO-DO:
 
 - [x] **Self-host.** Accept a convenient text description of a grammar rather than require constructing a Python object by hand. [Benjamin Schaaf's sbnf](https://github.com/BenjaminSchaaf/sbnf/) is a project with essentially the same goals as this one, and has a very nice syntax for defining grammars so it'd be nice to allow inputs in that format.
