@@ -519,6 +519,17 @@ class SublimeSyntax:
         if t.option_list:
             match['scope'] = ' '.join([f'{s}{self.scope_postfix}' for s in t.option_list])
 
+        if t.option_kv:
+            captures = {}
+            for k, v in t.option_kv.items():
+                try:
+                    int_k = int(k)
+                except ValueError:
+                    continue
+                captures[int_k] = ' '.join([f'{s}{self.scope_postfix}' for s in v.split(' ')])
+            if captures:
+                match['captures'] = captures
+
         if t.embed:
             (embed_regex,), embed_options = t.embed
             embed_options = [o.strip() for o in embed_options.split(',')]
