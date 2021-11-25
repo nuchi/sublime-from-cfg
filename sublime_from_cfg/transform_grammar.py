@@ -30,12 +30,13 @@ def transform_grammar(
             alternation = transform(nt, alternation, to_do)
         generated_rules[nt] = alternation
 
-
     # Rewrite names:
     # rewrite x : y
     #         y : ... y ...
+    #         z : ... y ...
     # as:
     #         x : ... x ...
+    #         z : ... x ...
     to_change = {}
     for x, alt in generated_rules.items():
         if len((prods := alt.productions)) == 1 \
@@ -51,8 +52,7 @@ def transform_grammar(
                 for i in range(len(production.concats)):
                     if isinstance(production.concats[i], Nonterminal) \
                             and production.concats[i] == y:
-                        production.concats[i] = replace(
-                            production.concats[i], symbol=x.symbol)
+                        production.concats[i] = x
 
     return generated_rules
 

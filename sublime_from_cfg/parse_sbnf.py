@@ -356,7 +356,7 @@ class SbnfParser(Parser):
                         raise ValueError('Tried to apply args to terminal')
                     return symbol
                 i = symbol.symbol
-            nt = Nonterminal(i, args)
+            nt = Nonterminal(i, args=args)
             self.to_do.add(nt)
             return nt
         return partial(make_symbol, IDENT)
@@ -408,7 +408,7 @@ class SbnfParser(Parser):
             match = True
             rule_context = {}
             for param, arg in zip(params, args):
-                if isinstance(param, Terminal) and arg != param.regex:
+                if isinstance(param, Terminal) and not (arg.regex == param.regex):
                     match = False
                     break
                 if isinstance(param, Nonterminal) \

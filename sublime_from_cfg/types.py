@@ -49,14 +49,13 @@ class Terminal(Symbol, OptionsHaver):
     embed: tuple[str, str] = None
     include: tuple[str, str] = None
 
-    def __str__(self):
-        return ('~' if self.passive else '') \
-            + (f"'{self.regex}'") \
-            + (f'{{{self.options}}}' if self.options else '')
-
     @property
     def _name(self):
         return '/T'
+
+    def __post_init__(self):
+        if not isinstance(self.regex, str):
+            raise ValueError(f'was assigned: {repr(self.regex)}')
 
 
 @dataclass(frozen=True)
@@ -77,18 +76,10 @@ class Nonterminal(Symbol):
     def _name(self):
         return self.symbol
 
-    def __str__(self):
-        return self.name
-
 
 @dataclass(frozen=True)
 class Concatenation(Expression):
     concats: list[Symbol]
-
-    def __str__(self):
-        if len(self.concats) == 0:
-            return '<empty>'
-        return ' '.join([str(sub) for sub in self.concats])
 
     @property
     def _name(self):
@@ -102,9 +93,6 @@ EMPTY = Concatenation([])
 class Alternation(Expression, OptionsHaver):
     productions: list[Concatenation]
     options: Optional[str] = None
-
-    def __str__(self):
-        return '\n    | '.join([str(sub) for sub in self.productions])
 
     @property
     def _name(self):
@@ -153,7 +141,7 @@ class SublimeSyntaxOptions:
 
     @property
     def name(self):
-        return self.NAME.lower()
+        return self.NAME
 
     @property
     def extensions(self):
@@ -165,12 +153,12 @@ class SublimeSyntaxOptions:
 
     @property
     def scope(self):
-        return self.SCOPE or f'source.{self.name}'
+        return self.SCOPE or f'source.{self.name.lower()}'
 
     @property
     def scope_postfix(self):
         if self.SCOPE_POSTFIX is None:
-            return f'.{self.name}'
+            return f'.{self.name.lower()}'
         elif self.SCOPE_POSTFIX == '':
             return ''
         return f'.{self.SCOPE_POSTFIX}'
