@@ -34,15 +34,19 @@ def transform_grammar(
     # rewrite x : y
     #         y : ... y ...
     #         z : ... y ...
+    #         w : ... x ...
     # as:
     #         x : ... x ...
     #         z : ... x ...
+    #         w : ... x ...
+    # when x doesn't have meta scope
     to_change = {}
     for x, alt in generated_rules.items():
-        if len((prods := alt.productions)) == 1 \
-                and len((concats := prods[0].concats)) == 1 \
-                and isinstance((y := concats[0]), Nonterminal) \
-                and not y.passive:
+        if (alt.options is None
+                and len((prods := alt.productions)) == 1
+                and len((concats := prods[0].concats)) == 1
+                and isinstance((y := concats[0]), Nonterminal)
+                and not y.passive):
             to_change[y] = x
     for y, x in to_change.items():
         generated_rules[x] = generated_rules[y]

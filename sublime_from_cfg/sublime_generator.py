@@ -538,13 +538,15 @@ class SublimeSyntax:
             if embed_options:
                 if ':' not in embed_options[0]:
                     action['embed_scope'] = embed_options.pop(0)
+                action['escape_captures'] = {}
                 for o in embed_options:
-                    action['escape_captures'] = {}
                     try:
                         k, v = o.split(':')
                         action['escape_captures'][int(k.strip())] = f'{v.strip()}{self.scope_postfix}'
                     except Exception:
                         raise ValueError(f'Bad capture group, expected <int>: <scope>. Found: {o}')
+                if not action['escape_captures']:
+                    del action['escape_captures']
             action['pop'] = 2
         elif t.include:
             (include_symbol,), include_options = t.include

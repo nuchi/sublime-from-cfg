@@ -99,66 +99,17 @@ contexts:
   - match: ''
     fail: prototype@p!@1
   main/:
-  - match: (?=\[)
-    push: [pop2!, /alt-0//*-0/main/]
   - match: (?=[[:alnum:]_\-\.]+)
+    push: [pop2!, /alt-0//*-0/main/]
+  - match: (?=\[)
     push: [pop2!, /alt-0//*-0/main/]
   - include: fail!
   /alt-0//*-0/main/:
-  - match: (?=\[)
-    set: parameters
   - match: (?=[[:alnum:]_\-\.]+)
     set: /alt-0//*-0/main/@0,1
-  - include: fail!
-  /alt-0//*-0/main/@0,1:
-  - match: ''
-    branch_point: /alt-0//*-0/main/@0,1
-    branch: ['/alt-0//*-0/main/@0,1!0', '/alt-0//*-0/main/@0,1!1']
-  /alt-0//*-0/main/@0,1!1:
-  - match: ''
-    set: [pop3!, pop3!, /alt-0//*-0/main/@follow!, pop2!, rule]
-  rule:
-  - match: ''
-    set: [/T/86387ac, pop2!, pattern, pop2!, /T/4be3fb1, pop2!, /opt//opt/8888166,
-      pop2!, /opt//opt/3309a98, pop2!, /T/5ae0a14]
-  /T/5ae0a14:
-  - match: '[[:alnum:]_\-\.]+'
-    scope: entity.name.function.sbnf
-    pop: 2
-  - include: fail!
-  /opt//opt/3309a98:
   - match: (?=\[)
-    set: /opt//opt/3309a98@0,1
-  - match: (?=~|!)
-    pop: 2
-  - match: (?={)
-    pop: 2
-  - match: (?=`)
-    pop: 2
-  - match: (?=\|)
-    pop: 2
-  - match: (?=\*|\?)
-    pop: 2
-  - match: (?=\))
-    pop: 2
-  - match: (?=\()
-    pop: 2
-  - match: (?=[[:alnum:]_\-\.]+)
-    pop: 2
-  - match: (?=;)
-    pop: 2
-  - match: (?=:)
-    pop: 2
-  - match: (?=')
-    pop: 2
+    set: parameters
   - include: fail!
-  /opt//opt/3309a98@0,1:
-  - match: ''
-    branch_point: /opt//opt/3309a98@0,1
-    branch: ['/opt//opt/3309a98@0,1!0', '/opt//opt/3309a98@0,1!1']
-  /opt//opt/3309a98@0,1!1:
-  - match: ''
-    set: [pop3!, pop3!, /opt//opt/3309a98@follow!, pop2!, parameters]
   parameters:
   - match: ''
     set: [/*-0/parameters, pop2!, parameter, pop2!, /T/843465a]
@@ -168,12 +119,116 @@ contexts:
     pop: 2
   - include: fail!
   parameter:
-  - match: (?=[[:alnum:]_\-\.]+)
-    set: /T/3b5c979
-  - match: (?=')
-    set: regex@wrap_meta!
   - match: (?=`)
     set: literal@wrap_meta!
+  - match: (?=')
+    set: regex@wrap_meta!
+  - match: (?=[[:alnum:]_\-\.]+)
+    set: /T/3b5c979
+  - include: fail!
+  /T/3b5c979:
+  - match: '[[:alnum:]_\-\.]+'
+    scope: variable.parameter.sbnf
+    pop: 2
+  - include: fail!
+  regex@wrap_meta!:
+  - meta_include_prototype: false
+  - match: ''
+    set: [regex@meta!, pop2!, regex]
+  regex:
+  - meta_include_prototype: false
+  - match: ''
+    set: [^/T/16cc2d8, pop2!, ^/T/4303e2e]
+  ^/T/4303e2e:
+  - meta_include_prototype: false
+  - match: "'"
+    scope: punctuation.definition.string.begin.sbnf
+    set: [pop2!, pop1!, scope:source.regexp]
+    with_prototype:
+    - include: regex-prototype
+  - include: fail!
+  regex-prototype:
+  - meta_include_prototype: false
+  - match: (?=(?='))
+    push: [pop2!, regex-prototype@p!@0]
+  - match: (?=\#\[)
+    push: [pop2!, regex-prototype@p!@0]
+  - match: (?=\\')
+    push: [pop2!, regex-prototype@p!@0]
+  regex-prototype@p!@0:
+  - meta_include_prototype: false
+  - match: ''
+    branch_point: regex-prototype@p!@0
+    branch: [regex-prototype@p!@0!0, consume!]
+  regex-prototype@p!@0!0:
+  - meta_include_prototype: false
+  - match: ''
+    set: [pop5!, regex-prototype@p!@0@fail!, ^/*-0/regex-prototype]
+  ^/*-0/regex-prototype:
+  - meta_include_prototype: false
+  - match: (?=(?='))
+    push: [pop2!, /*-0/regex-prototype@p!@0]
+  - match: (?=\#\[)
+    push: [pop2!, /*-0/regex-prototype@p!@1]
+  - match: (?=\\')
+    push: [pop2!, /*-0/regex-prototype@p!@1]
+  /*-0/regex-prototype@p!@1:
+  - meta_include_prototype: false
+  - match: ''
+    branch_point: /*-0/regex-prototype@p!@1
+    branch: [/*-0/regex-prototype@p!@1!1, consume!]
+  /*-0/regex-prototype@p!@1!1:
+  - meta_include_prototype: false
+  - match: ''
+    push: ^/alt-0//*-0/regex-prototype
+    pop: 2
+  ^/alt-0//*-0/regex-prototype:
+  - meta_include_prototype: false
+  - match: (?=\#\[)
+    push: [pop2!, /alt-0//*-0/regex-prototype@p!@0]
+  - match: (?=\\')
+    push: [pop2!, /alt-0//*-0/regex-prototype@p!@0]
+  /alt-0//*-0/regex-prototype@p!@0:
+  - meta_include_prototype: false
+  - match: ''
+    branch_point: /alt-0//*-0/regex-prototype@p!@0
+    branch: [/alt-0//*-0/regex-prototype@p!@0!0, consume!]
+  /alt-0//*-0/regex-prototype@p!@0!0:
+  - meta_include_prototype: false
+  - match: ''
+    set: [pop5!, /alt-0//*-0/regex-prototype@p!@0@fail!, ^/alt-0//alt-0//*-0/regex-prototype,
+      pop2!, ^/alt-0//alt-0//*-0/regex-prototype@pp!]
+  ^/alt-0//alt-0//*-0/regex-prototype@pp!:
+  - meta_include_prototype: false
+  - match: (?=\\')
+    pop: 2
+  - match: (?=\#\[)
+    pop: 2
+  ^/alt-0//alt-0//*-0/regex-prototype:
+  - meta_include_prototype: false
+  - match: (?=\\')
+    set: ^/T/88f861a
+  - match: (?=\#\[)
+    set: ^interpolation
+  - include: fail!
+  ^interpolation:
+  - meta_include_prototype: false
+  - match: ''
+    set: [^/T/bfc5bb1, pop2!, ^parameter, pop2!, ^/T/6b99cb5]
+  ^/T/6b99cb5:
+  - meta_include_prototype: false
+  - match: \#\[
+    scope: punctuation.definition.placeholder.begin.sbnf
+    pop: 2
+  - include: fail!
+  ^parameter:
+  - meta_include_prototype: false
+  - match: (?=`)
+    set: literal@wrap_meta!
+  - match: (?=')
+    set: regex@wrap_meta!
+  - match: (?=[[:alnum:]_\-\.]+)
+    set: /T/3b5c979
   - include: fail!
   literal@wrap_meta!:
   - meta_include_prototype: false
@@ -204,39 +259,35 @@ contexts:
   - meta_scope: string.quoted.sbnf
   - match: ''
     pop: 2
-  regex@wrap_meta!:
+  ^/T/bfc5bb1:
   - meta_include_prototype: false
-  - match: ''
-    set: [regex@meta!, pop2!, regex]
-  regex:
-  - meta_include_prototype: false
-  - match: ''
-    set: [^/T/16cc2d8, pop2!, ^/T/4303e2e]
-  ^/T/4303e2e:
-  - meta_include_prototype: false
-  - match: "'"
-    scope: punctuation.definition.string.begin.sbnf
-    set: [pop2!, pop1!, scope:source.regexp]
-    with_prototype:
-    - include: regex-prototype
+  - match: \]
+    scope: punctuation.definition.placeholder.end.sbnf
+    pop: 2
   - include: fail!
-  regex-prototype:
+  ^/T/88f861a:
   - meta_include_prototype: false
-  - match: (?=\\')
-    push: [pop2!, regex-prototype@p!@1]
-  - match: (?=\#\[)
-    push: [pop2!, regex-prototype@p!@1]
-  - match: (?=(?='))
-    push: [pop2!, regex-prototype@p!@0]
-  regex-prototype@p!@0:
+  - match: \\'
+    scope: constant.character.escape.sbnf
+    pop: 2
+  - include: fail!
+  /alt-0//*-0/regex-prototype@p!@0@fail!:
   - meta_include_prototype: false
   - match: ''
-    branch_point: regex-prototype@p!@0
-    branch: [regex-prototype@p!@0!0, consume!]
-  regex-prototype@p!@0!0:
+    fail: /alt-0//*-0/regex-prototype@p!@0
+  /*-0/regex-prototype@p!@1@fail!:
   - meta_include_prototype: false
   - match: ''
-    set: [pop5!, regex-prototype@p!@0@fail!, ^/T/02b4683, pop2!, ^/T/02b4683@pp!]
+    fail: /*-0/regex-prototype@p!@1
+  /*-0/regex-prototype@p!@0:
+  - meta_include_prototype: false
+  - match: ''
+    branch_point: /*-0/regex-prototype@p!@0
+    branch: [/*-0/regex-prototype@p!@0!0, consume!]
+  /*-0/regex-prototype@p!@0!0:
+  - meta_include_prototype: false
+  - match: ''
+    set: [pop5!, /*-0/regex-prototype@p!@0@fail!, ^/T/02b4683, pop2!, ^/T/02b4683@pp!]
   ^/T/02b4683@pp!:
   - meta_include_prototype: false
   - match: (?=(?='))
@@ -246,101 +297,14 @@ contexts:
   - match: (?=')
     pop: 2
   - include: fail!
+  /*-0/regex-prototype@p!@0@fail!:
+  - meta_include_prototype: false
+  - match: ''
+    fail: /*-0/regex-prototype@p!@0
   regex-prototype@p!@0@fail!:
   - meta_include_prototype: false
   - match: ''
     fail: regex-prototype@p!@0
-  regex-prototype@p!@1:
-  - meta_include_prototype: false
-  - match: ''
-    branch_point: regex-prototype@p!@1
-    branch: [regex-prototype@p!@1!1, consume!]
-  regex-prototype@p!@1!1:
-  - meta_include_prototype: false
-  - match: ''
-    push: ^/alt-0//*-0/regex-prototype
-    pop: 2
-  ^/alt-0//*-0/regex-prototype:
-  - meta_include_prototype: false
-  - match: (?=\\')
-    push: [pop2!, /alt-0//*-0/regex-prototype@p!@0]
-  - match: (?=\#\[)
-    push: [pop2!, /alt-0//*-0/regex-prototype@p!@0]
-  /alt-0//*-0/regex-prototype@p!@0:
-  - meta_include_prototype: false
-  - match: ''
-    branch_point: /alt-0//*-0/regex-prototype@p!@0
-    branch: [/alt-0//*-0/regex-prototype@p!@0!0, consume!]
-  /alt-0//*-0/regex-prototype@p!@0!0:
-  - meta_include_prototype: false
-  - match: ''
-    set: [pop5!, /alt-0//*-0/regex-prototype@p!@0@fail!, ^/alt-0//alt-0//*-0/regex-prototype,
-      pop2!, ^/alt-0//alt-0//*-0/regex-prototype@pp!]
-  ^/alt-0//alt-0//*-0/regex-prototype@pp!:
-  - meta_include_prototype: false
-  - match: (?=\#\[)
-    pop: 2
-  - match: (?=\\')
-    pop: 2
-  ^/alt-0//alt-0//*-0/regex-prototype:
-  - meta_include_prototype: false
-  - match: (?=\#\[)
-    set: ^interpolation
-  - match: (?=\\')
-    set: ^/T/88f861a
-  - include: fail!
-  ^/T/88f861a:
-  - meta_include_prototype: false
-  - match: \\'
-    scope: constant.character.escape.sbnf
-    pop: 2
-  - include: fail!
-  ^interpolation:
-  - meta_include_prototype: false
-  - match: ''
-    set: [^/T/bfc5bb1, pop2!, ^parameter, pop2!, ^/T/6b99cb5]
-  ^/T/6b99cb5:
-  - meta_include_prototype: false
-  - match: \#\[
-    scope: punctuation.definition.placeholder.begin.sbnf
-    pop: 2
-  - include: fail!
-  ^parameter:
-  - meta_include_prototype: false
-  - match: (?=[[:alnum:]_\-\.]+)
-    set: /T/3b5c979
-  - match: (?=')
-    set: regex@wrap_meta!
-  - match: (?=`)
-    set: literal@wrap_meta!
-  - include: fail!
-  /T/3b5c979:
-  - match: '[[:alnum:]_\-\.]+'
-    scope: variable.parameter.sbnf
-    pop: 2
-  - include: fail!
-  ^/T/bfc5bb1:
-  - meta_include_prototype: false
-  - match: \]
-    scope: punctuation.definition.placeholder.end.sbnf
-    pop: 2
-  - include: fail!
-  /alt-0//*-0/regex-prototype@p!@0@fail!:
-  - meta_include_prototype: false
-  - match: ''
-    fail: /alt-0//*-0/regex-prototype@p!@0
-  ^regex-prototype:
-  - meta_include_prototype: false
-  - match: (?=\\')
-    push: [pop2!, regex-prototype@p!@1]
-  - match: (?=\#\[)
-    push: [pop2!, regex-prototype@p!@1]
-  - match: (?=(?='))
-    push: [pop2!, regex-prototype@p!@0]
-  regex-prototype@p!@1@fail!:
-  - meta_include_prototype: false
-  - match: ''
-    fail: regex-prototype@p!@1
   ^/T/16cc2d8:
   - meta_include_prototype: false
   - match: "'"
@@ -353,15 +317,10 @@ contexts:
   - match: ''
     pop: 2
   /*-0/parameters:
-  - match: (?=,)
-    push: [pop2!, /alt-0//*-0/parameters]
   - match: (?=\])
     set: /T/e72e6b7
-  - include: fail!
-  /T/e72e6b7:
-  - match: \]
-    scope: punctuation.section.parameters.end.sbnf
-    pop: 2
+  - match: (?=,)
+    push: [pop2!, /alt-0//*-0/parameters]
   - include: fail!
   /alt-0//*-0/parameters:
   - match: ''
@@ -370,6 +329,60 @@ contexts:
   - match: ','
     pop: 2
   - include: fail!
+  /T/e72e6b7:
+  - match: \]
+    scope: punctuation.section.parameters.end.sbnf
+    pop: 2
+  - include: fail!
+  /alt-0//*-0/main/@0,1:
+  - match: ''
+    branch_point: /alt-0//*-0/main/@0,1
+    branch: ['/alt-0//*-0/main/@0,1!0', '/alt-0//*-0/main/@0,1!1']
+  /alt-0//*-0/main/@0,1!1:
+  - match: ''
+    set: [pop3!, pop3!, /alt-0//*-0/main/@follow!, pop2!, rule]
+  rule:
+  - match: ''
+    set: [/T/86387ac, pop2!, pattern, pop2!, /T/4be3fb1, pop2!, /opt//opt/8888166,
+      pop2!, /opt//opt/3309a98, pop2!, /T/5ae0a14]
+  /T/5ae0a14:
+  - match: '[[:alnum:]_\-\.]+'
+    scope: entity.name.function.sbnf
+    pop: 2
+  - include: fail!
+  /opt//opt/3309a98:
+  - match: (?=')
+    pop: 2
+  - match: (?=:)
+    pop: 2
+  - match: (?=;)
+    pop: 2
+  - match: (?=[[:alnum:]_\-\.]+)
+    pop: 2
+  - match: (?=\()
+    pop: 2
+  - match: (?=\))
+    pop: 2
+  - match: (?=\*|\?)
+    pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=`)
+    pop: 2
+  - match: (?={)
+    pop: 2
+  - match: (?=~|!)
+    pop: 2
+  - match: (?=\[)
+    set: /opt//opt/3309a98@0,1
+  - include: fail!
+  /opt//opt/3309a98@0,1:
+  - match: ''
+    branch_point: /opt//opt/3309a98@0,1
+    branch: ['/opt//opt/3309a98@0,1!0', '/opt//opt/3309a98@0,1!1']
+  /opt//opt/3309a98@0,1!1:
+  - match: ''
+    set: [pop3!, pop3!, /opt//opt/3309a98@follow!, pop2!, parameters]
   /opt//opt/3309a98@follow!:
   - match: (?=')
     pop: 2
@@ -403,30 +416,30 @@ contexts:
   - match: ''
     fail: /opt//opt/3309a98@0,1
   /opt//opt/8888166:
-  - match: (?={)
-    set: options
-  - match: (?=~|!)
-    pop: 2
-  - match: (?=`)
-    pop: 2
-  - match: (?=\|)
-    pop: 2
-  - match: (?=\*|\?)
-    pop: 2
-  - match: (?=\))
-    pop: 2
-  - match: (?=\()
-    pop: 2
-  - match: (?=[[:alnum:]_\-\.]+)
-    pop: 2
-  - match: (?=;)
-    pop: 2
-  - match: (?=:)
+  - match: (?=%)
     pop: 2
   - match: (?=')
     pop: 2
-  - match: (?=%)
+  - match: (?=:)
     pop: 2
+  - match: (?=;)
+    pop: 2
+  - match: (?=[[:alnum:]_\-\.]+)
+    pop: 2
+  - match: (?=\()
+    pop: 2
+  - match: (?=\))
+    pop: 2
+  - match: (?=\*|\?)
+    pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=`)
+    pop: 2
+  - match: (?=~|!)
+    pop: 2
+  - match: (?={)
+    set: options
   - include: fail!
   options:
   - meta_include_prototype: false
@@ -440,59 +453,10 @@ contexts:
   - include: fail!
   ^/*-0/options:
   - meta_include_prototype: false
-  - match: (?=\#\[)
-    push: [pop2!, /*-0/options@p!@1]
   - match: (?=})
     push: [pop2!, /*-0/options@p!@0]
-  /*-0/options@p!@0:
-  - meta_include_prototype: false
-  - match: ''
-    branch_point: /*-0/options@p!@0
-    branch: [/*-0/options@p!@0!0, consume!]
-  /*-0/options@p!@0!0:
-  - meta_include_prototype: false
-  - match: ''
-    set: [pop5!, /*-0/options@p!@0@fail!, /*-0/options@follow!, pop2!, ^/T/cdfc4b7,
-      pop2!, ^/T/cdfc4b7@pp!]
-  ^/T/cdfc4b7@pp!:
-  - meta_include_prototype: false
-  - match: (?=})
-    pop: 2
-  ^/T/cdfc4b7:
-  - meta_include_prototype: false
-  - match: '}'
-    scope: punctuation.section.options.end.sbnf
-    pop: 2
-  - include: fail!
-  /*-0/options@follow!:
-  - meta_include_prototype: false
-  - match: (?=%)
-    pop: 2
-  - match: (?=')
-    pop: 2
-  - match: (?=:)
-    pop: 2
-  - match: (?=;)
-    pop: 2
-  - match: (?=[[:alnum:]_\-\.]+)
-    pop: 2
-  - match: (?=\()
-    pop: 2
-  - match: (?=\))
-    pop: 2
-  - match: (?=\*|\?)
-    pop: 2
-  - match: (?=\|)
-    pop: 2
-  - match: (?=`)
-    pop: 2
-  - match: (?=~|!)
-    pop: 2
-  - include: fail!
-  /*-0/options@p!@0@fail!:
-  - meta_include_prototype: false
-  - match: ''
-    fail: /*-0/options@p!@0
+  - match: (?=\#\[)
+    push: [pop2!, /*-0/options@p!@1]
   /*-0/options@p!@1:
   - meta_include_prototype: false
   - match: ''
@@ -524,10 +488,59 @@ contexts:
   - meta_include_prototype: false
   - match: ''
     fail: /alt-0//*-0/options@p!@0
+  /*-0/options@follow!:
+  - meta_include_prototype: false
+  - match: (?=%)
+    pop: 2
+  - match: (?=')
+    pop: 2
+  - match: (?=:)
+    pop: 2
+  - match: (?=;)
+    pop: 2
+  - match: (?=[[:alnum:]_\-\.]+)
+    pop: 2
+  - match: (?=\()
+    pop: 2
+  - match: (?=\))
+    pop: 2
+  - match: (?=\*|\?)
+    pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=`)
+    pop: 2
+  - match: (?=~|!)
+    pop: 2
+  - include: fail!
   /*-0/options@p!@1@fail!:
   - meta_include_prototype: false
   - match: ''
     fail: /*-0/options@p!@1
+  /*-0/options@p!@0:
+  - meta_include_prototype: false
+  - match: ''
+    branch_point: /*-0/options@p!@0
+    branch: [/*-0/options@p!@0!0, consume!]
+  /*-0/options@p!@0!0:
+  - meta_include_prototype: false
+  - match: ''
+    set: [pop5!, /*-0/options@p!@0@fail!, /*-0/options@follow!, pop2!, ^/T/cdfc4b7,
+      pop2!, ^/T/cdfc4b7@pp!]
+  ^/T/cdfc4b7@pp!:
+  - meta_include_prototype: false
+  - match: (?=})
+    pop: 2
+  ^/T/cdfc4b7:
+  - meta_include_prototype: false
+  - match: '}'
+    scope: punctuation.section.options.end.sbnf
+    pop: 2
+  - include: fail!
+  /*-0/options@p!@0@fail!:
+  - meta_include_prototype: false
+  - match: ''
+    fail: /*-0/options@p!@0
   /T/4be3fb1:
   - match: ':'
     scope: keyword.operator.assignment.sbnf
@@ -540,16 +553,16 @@ contexts:
   - match: ''
     set: [/opt//opt/18fae41, pop2!, pattern-item, pop2!, /opt//opt/428b5d8]
   /opt//opt/428b5d8:
-  - match: (?=~|!)
-    set: /T/278075e
-  - match: (?=`)
-    pop: 2
-  - match: (?=\()
+  - match: (?=')
     pop: 2
   - match: (?=[[:alnum:]_\-\.]+)
     pop: 2
-  - match: (?=')
+  - match: (?=\()
     pop: 2
+  - match: (?=`)
+    pop: 2
+  - match: (?=~|!)
+    set: /T/278075e
   - include: fail!
   /T/278075e:
   - match: ~|!
@@ -557,47 +570,18 @@ contexts:
     pop: 2
   - include: fail!
   pattern-item:
-  - match: (?=[[:alnum:]_\-\.]+)
-    set: [/opt//opt/8888166, pop2!, /opt//opt/3309a98, pop2!, /T/4ce4cda]
-  - match: (?=\()
-    set: group@wrap_meta!
-  - match: (?=')
-    set: [/opt//opt/d4ca27c, pop2!, /opt//opt/8888166, pop2!, regex@wrap_meta!]
   - match: (?=`)
     set: [/opt//opt/d4ca27c, pop2!, /opt//opt/8888166, pop2!, literal@wrap_meta!]
-  - include: fail!
-  /opt//opt/d4ca27c:
-  - match: (?=%)
-    set: embed-include
-  - match: (?=~|!)
-    pop: 2
-  - match: (?=`)
-    pop: 2
-  - match: (?=\|)
-    pop: 2
-  - match: (?=\*|\?)
-    pop: 2
-  - match: (?=\))
-    pop: 2
-  - match: (?=\()
-    pop: 2
-  - match: (?=[[:alnum:]_\-\.]+)
-    pop: 2
-  - match: (?=;)
-    pop: 2
   - match: (?=')
-    pop: 2
+    set: [/opt//opt/d4ca27c, pop2!, /opt//opt/8888166, pop2!, regex@wrap_meta!]
+  - match: (?=\()
+    set: group@wrap_meta!
+  - match: (?=[[:alnum:]_\-\.]+)
+    set: [/opt//opt/8888166, pop2!, /opt//opt/3309a98, pop2!, /T/4ce4cda]
   - include: fail!
-  embed-include:
-  - match: ''
-    set: [options, pop2!, parameters, pop2!, /T/ec62500, pop2!, /T/895d5d0]
-  /T/895d5d0:
-  - match: '%'
-    pop: 2
-  - include: fail!
-  /T/ec62500:
-  - match: embed|include
-    scope: keyword.sbnf
+  /T/4ce4cda:
+  - match: '[[:alnum:]_\-\.]+'
+    scope: variable.function.sbnf
     pop: 2
   - include: fail!
   group@wrap_meta!:
@@ -620,30 +604,59 @@ contexts:
   - meta_scope: meta.group.sbnf
   - match: ''
     pop: 2
-  /T/4ce4cda:
-  - match: '[[:alnum:]_\-\.]+'
-    scope: variable.function.sbnf
-    pop: 2
-  - include: fail!
-  /opt//opt/18fae41:
-  - match: (?=\*|\?)
-    set: /T/71c109c
-  - match: (?=~|!)
-    pop: 2
-  - match: (?=`)
-    pop: 2
-  - match: (?=\|)
-    pop: 2
-  - match: (?=\))
-    pop: 2
-  - match: (?=\()
-    pop: 2
-  - match: (?=[[:alnum:]_\-\.]+)
+  /opt//opt/d4ca27c:
+  - match: (?=')
     pop: 2
   - match: (?=;)
     pop: 2
+  - match: (?=[[:alnum:]_\-\.]+)
+    pop: 2
+  - match: (?=\()
+    pop: 2
+  - match: (?=\))
+    pop: 2
+  - match: (?=\*|\?)
+    pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=`)
+    pop: 2
+  - match: (?=~|!)
+    pop: 2
+  - match: (?=%)
+    set: embed-include
+  - include: fail!
+  embed-include:
+  - match: ''
+    set: [options, pop2!, parameters, pop2!, /T/ec62500, pop2!, /T/895d5d0]
+  /T/895d5d0:
+  - match: '%'
+    pop: 2
+  - include: fail!
+  /T/ec62500:
+  - match: embed|include
+    scope: keyword.sbnf
+    pop: 2
+  - include: fail!
+  /opt//opt/18fae41:
   - match: (?=')
     pop: 2
+  - match: (?=;)
+    pop: 2
+  - match: (?=[[:alnum:]_\-\.]+)
+    pop: 2
+  - match: (?=\()
+    pop: 2
+  - match: (?=\))
+    pop: 2
+  - match: (?=\|)
+    pop: 2
+  - match: (?=`)
+    pop: 2
+  - match: (?=~|!)
+    pop: 2
+  - match: (?=\*|\?)
+    set: /T/71c109c
   - include: fail!
   /T/71c109c:
   - match: \*|\?
@@ -651,39 +664,39 @@ contexts:
     pop: 2
   - include: fail!
   /opt//opt/4693212:
-  - match: (?=~|!)
-    set: /alt-0//opt//opt/4693212
-  - match: (?=`)
-    set: /alt-0//opt//opt/4693212
-  - match: (?=\|)
-    set: /alt-0//opt//opt/4693212
-  - match: (?=\()
+  - match: (?=;)
+    pop: 2
+  - match: (?=\))
+    pop: 2
+  - match: (?=')
     set: /alt-0//opt//opt/4693212
   - match: (?=[[:alnum:]_\-\.]+)
     set: /alt-0//opt//opt/4693212
-  - match: (?=')
+  - match: (?=\()
     set: /alt-0//opt//opt/4693212
-  - match: (?=\))
-    pop: 2
-  - match: (?=;)
-    pop: 2
+  - match: (?=\|)
+    set: /alt-0//opt//opt/4693212
+  - match: (?=`)
+    set: /alt-0//opt//opt/4693212
+  - match: (?=~|!)
+    set: /alt-0//opt//opt/4693212
   - include: fail!
   /alt-0//opt//opt/4693212:
   - match: ''
     set: [pattern, pop2!, /opt//opt/3b08352]
   /opt//opt/3b08352:
-  - match: (?=\|)
-    set: /T/2472d37
-  - match: (?=~|!)
-    pop: 2
-  - match: (?=`)
-    pop: 2
-  - match: (?=\()
+  - match: (?=')
     pop: 2
   - match: (?=[[:alnum:]_\-\.]+)
     pop: 2
-  - match: (?=')
+  - match: (?=\()
     pop: 2
+  - match: (?=`)
+    pop: 2
+  - match: (?=~|!)
+    pop: 2
+  - match: (?=\|)
+    set: /T/2472d37
   - include: fail!
   /T/2472d37:
   - match: \|
@@ -719,12 +732,12 @@ contexts:
     pop: 2
   - include: fail!
   /alt-0/variable:
-  - match: (?=[[:alnum:]_\-\.]+)
-    set: [/opt//opt/3309a98, pop2!, /T/4ce4cda]
-  - match: (?=')
-    set: regex@wrap_meta!
   - match: (?=`)
     set: literal@wrap_meta!
+  - match: (?=')
+    set: regex@wrap_meta!
+  - match: (?=[[:alnum:]_\-\.]+)
+    set: [/opt//opt/3309a98, pop2!, /T/4ce4cda]
   - include: fail!
   /alt-0//*-0/main/@0,1@fail!:
   - match: ''
