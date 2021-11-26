@@ -53,6 +53,16 @@ statement : IDENTIFIER{entity.name, sort: 1} `=` '\d+' `;`
 ```
 At the moment, the same regular expression can only have one sort value across the whole file (defining it twice will pick one arbitrarily). The default value is 0, and smaller values are tried before larger values. In the example above, `'import'` has lower precedence (the default value 0) than `IDENTIFIER` (value 1), so the syntax engine will try to match `'import'` first.
 
+#### String vs Rule parameters
+
+String parameters and arguments must be specified in ALL_CAPS:
+```diff
+- foobar[scope-1, scope-2] : `foo`{#[scope-1]} `bar`{#[scope-2]} ;
++ foobar[SCOPE_1, SCOPE_2] : `foo`{#[SCOPE_1]} `bar`{#[SCOPE_2]} ;
+```
+
+Rule parameters and arguments aren't supported yet (except that a rule argument to an `%include` is okay).
+
 ## TO-DO:
 
 - [x] **Self-host.** Accept a convenient text description of a grammar rather than require constructing a Python object by hand. [Benjamin Schaaf's sbnf](https://github.com/BenjaminSchaaf/sbnf/) is a project with essentially the same goals as this one, and has a very nice syntax for defining grammars so it'd be nice to allow inputs in that format.
