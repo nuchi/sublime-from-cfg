@@ -1,0 +1,13 @@
+# SYNTAX TEST "Packages/tests/non_ll/non_ll.sublime-syntax"
+ abb ;
+#^^^ two
+#    ^ end-line
+ aaabbb ;
+#^^^^^^ one
+#       ^ end-line
+ aab;
+#^^^ - invalid.illegal
+#   ^ invalid.illegal
+ abbb;
+#^^^ - invalid.illegal
+#   ^^ invalid.illegal

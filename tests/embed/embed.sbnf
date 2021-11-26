@@ -1,0 +1,9 @@
+main :
+    ~`'`{punctuation.definition.begin}
+    %embed[`'`]{embedded.sublime-syntax,
+                inner.embed,
+                0: punctuation.definition.end}
+    ;
+
+prototype : (~comment)* ;
+comment{comment} : `#` ~'$\n?';

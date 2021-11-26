@@ -1,0 +1,10 @@
+main :
+    (~`'`{punctuation.definition.begin}
+        %include[include-prototype]{included.sublime-syntax}
+        `'`{punctuation.definition.end})*
+    ;
+
+include-prototype : (~`X`{constant.character})* ~'(?=\')';
+
+# prototype : (~comment)* ;
+# comment{comment} : `#` ~'$\n?';

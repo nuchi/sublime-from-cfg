@@ -1,0 +1,7 @@
+main : line* ;
+line : (one | two) `;`{end-line} ;
+one : <> | `a`{one} one `b`{one} ;
+two : <> | `a`{two} two `b`{two} `b`{two} ;
+
+# prototype : (~comment)* ;
+# comment{comment} : `#` ~'$\n?';

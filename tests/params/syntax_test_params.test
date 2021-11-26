@@ -1,0 +1,7 @@
+# SYNTAX TEST "Packages/tests/params/params.sublime-syntax"
+ xay a
+#^^^ a - b c
+ xby b
+#^^^ b - c a
+ xcy c
+#^^^ c - a b

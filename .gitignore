@@ -1,5 +1,7 @@
 __pycache__/
+syntax_tests
 sublime-from-cfg.sublime-project
 sublime-from-cfg.sublime-workspace
 *.egg-info/
 dist/
+tests/**/*.sublime-syntax

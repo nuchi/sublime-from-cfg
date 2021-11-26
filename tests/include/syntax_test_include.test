@@ -1,0 +1,10 @@
+# SYNTAX TEST "Packages/tests/include/include.sublime-syntax"
+ foo 'a b X c'
+#^^^^ source.include
+#    ^ punctuation.definition.begin
+#     ^^^^^^^ source.included
+#     ^ a.included
+#       ^ b.included
+#         ^ constant.character.include
+#           ^ c.included
+#            ^ punctuation.definition.end - source.included
