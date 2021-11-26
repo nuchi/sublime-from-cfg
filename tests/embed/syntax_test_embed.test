@@ -1,0 +1,9 @@
+# SYNTAX TEST "Packages/tests/embed/embed.sublime-syntax"
+ foo 'a b c'
+#^^^^ source.embed
+#    ^ punctuation.definition.begin
+#     ^^^^^ inner.embed
+#     ^ a
+#       ^ b
+#         ^ c
+#          ^ punctuation.definition.end

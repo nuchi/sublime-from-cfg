@@ -1,0 +1,52 @@
+name: test
+
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - 'tests/**'
+      - '**/*.py'
+      - 'setup.cfg'
+      - 'pyproject.toml'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches:
+      - '*'
+    paths:
+      - 'tests/**'
+      - '**/*.py'
+      - 'setup.cfg'
+      - 'pyproject.toml'
+      - '.github/workflows/test.yml'
+  workflow_dispatch:
+
+jobs:
+  run_syntax_tests:
+    name: Generate syntax files and run syntax tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Get Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Git checkout
+        uses: actions/checkout@v2
+      - name: Build Python Package
+        run: python -m pip install .
+      - name: Get Sublime syntax_test binary
+        run: |
+          wget -O st_syntax_tests.tar.xz https://download.sublimetext.com/st_syntax_tests_build_4121_x64.tar.xz
+          tar xf st_syntax_tests.tar.xz
+          mv st_syntax_tests/* ./
+          rm -R st_syntax_tests st_syntax_tests.tar.xz
+      - name: Generate .sublime-syntax test files
+        run: |
+          find tests -name '*.sbnf' -exec sublime-from-cfg {} \;
+      - name: 'Move tests into "Data/Packages/" subdirectory'
+        run: |
+          mkdir -p Data/Packages/
+          mv tests Data/Packages/
+      - name: Run syntax tests
+        run: ./syntax_tests

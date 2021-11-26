@@ -1,0 +1,13 @@
+main : ('a'{a} 'b'{b} 'c'{c})* ;
+
+prototype : (~comment)* ;
+comment
+    : block-comment
+    | line-comment
+    ;
+
+block-comment{comment.block} :
+    `/*` ~`*/` ;
+
+line-comment{comment.line} :
+    `#` ~'$\n?' ;

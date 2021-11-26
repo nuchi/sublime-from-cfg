@@ -1,0 +1,16 @@
+# SYNTAX TEST "Packages/tests/prototype/prototype.sublime-syntax"
+ a /* foo */ /* bar */
+#^ a
+# ^ - a b c comment.block
+#  ^^^^^^^^^ comment.block
+#           ^ - a b c comment.block
+#            ^^^^^^^^^ comment.block
+ b /* blah
+#^ b
+# ^ - a b c comment.block
+#  ^^^^^^^ comment.block
+ blah */ c
+# <- comment.block
+#^^^^^^^ comment.block
+#       ^ - a b c comment.block
+#        ^ c

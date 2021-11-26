@@ -1,0 +1,10 @@
+main : (   x['a'] `a`
+         | x['b'] `b`
+         | x['c'] `c`
+       )*
+     ;
+
+x[S] : 'x#[S]y'{#[S]} ;
+
+# prototype : (~comment)* ;
+# comment{comment} : `#` ~'$\n?';
