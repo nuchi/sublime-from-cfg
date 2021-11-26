@@ -274,7 +274,7 @@ class SbnfParser(Parser):
     @_('IDENT')
     def argument(self, p):
         IDENT = p.IDENT
-        return lambda **context: _expand(IDENT, context)
+        return lambda **context: Nonterminal(IDENT)
 
     @_('U_IDENT')
     def argument(self, p):
