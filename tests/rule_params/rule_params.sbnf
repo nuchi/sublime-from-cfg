@@ -1,0 +1,11 @@
+main : (rule[a] | rule[b] | rule[c])*;
+
+a : `a`{a};
+b : `b`{b};
+c : `c`{c};
+
+rule[c] : `z` ;
+rule[x] : x x ;
+
+# prototype : (~comment)* ;
+# comment{comment} : `#` ~'$\n?';

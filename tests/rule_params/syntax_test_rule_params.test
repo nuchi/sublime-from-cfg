@@ -1,0 +1,10 @@
+# SYNTAX TEST "Packages/tests/rule_params/rule_params.sublime-syntax"
+ aa
+#^^ a
+ bb
+#^^ b
+ cc
+#^^ invalid.illegal
+ ab
+#^ a
+# ^ invalid.illegal

@@ -61,7 +61,11 @@ String parameters and arguments must be specified in ALL_CAPS:
 + foobar[SCOPE_1, SCOPE_2] : `foo`{#[SCOPE_1]} `bar`{#[SCOPE_2]} ;
 ```
 
-Rule parameters and arguments aren't supported yet (except that a rule argument to an `%include` is okay).
+Rule parameters and arguments must be specified in lower-case:
+```diff
+- foobar[X_Y] : X_Y X_Y ;
++ foobar[x-y] : x-y x-y ;
+```
 
 ## TO-DO:
 
