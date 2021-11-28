@@ -1,10 +1,9 @@
-main : (rule[a] | rule[b] | rule[c])*;
+main : (rule[a] | rule['b'] | rule[c])*;
 
 a : `a`{a};
-b : `b`{b};
 c : `c`{c};
 
-rule[c] : `z` ;
+rule[c] : `z`{z} ;
 rule[x] : x x ;
 
 # prototype : (~comment)* ;

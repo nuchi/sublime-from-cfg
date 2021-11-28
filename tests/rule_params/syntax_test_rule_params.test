@@ -2,9 +2,9 @@
  aa
 #^^ a
  bb
-#^^ b
- cc
-#^^ invalid.illegal
+#^^ - invalid.illegal
+ z
+#^ z
  ab
 #^ a
 # ^ invalid.illegal

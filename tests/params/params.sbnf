@@ -4,6 +4,7 @@ main : (   x['a'] `a`
        )*
      ;
 
+x['a'] : `z`{z} ;
 x[S] : 'x#[S]y'{#[S]} ;
 
 # prototype : (~comment)* ;
