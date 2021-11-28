@@ -1,0 +1,7 @@
+# SYNTAX TEST "Packages/tests/no_prototype/no_prototype.sublime-syntax"
+ a /* foo */ "/* bar */" (/* baz */)
+#^^ source.no_prototype - string comment
+#  ^^^^^^^^^ comment - string
+#            ^^^^^^^^^^^ string - comment
+#                        ^^^^^^^^^^^ group
+#                         ^^^^^^^^^ comment

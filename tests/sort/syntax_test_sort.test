@@ -1,0 +1,6 @@
+# SYNTAX TEST "Packages/tests/sort/sort.sublime-syntax"
+ ab
+#^^ ab - a - b
+ xy
+#^ x - xy y
+# ^ y - xy y

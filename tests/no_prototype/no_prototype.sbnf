@@ -1,0 +1,12 @@
+main : (~(string|group))*;
+
+string{string, include-prototype: false}
+    : `"` ~`"`;
+
+group{group}
+    : `(` ~`)`;
+
+prototype : (~comment)*;
+
+comment{comment}
+    : `/*` ~`*/`;

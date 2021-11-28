@@ -1,0 +1,10 @@
+main : any*;
+
+any
+    : `a`{a}
+    | `ab`{ab, sort: -1}
+    | `b`{b}
+    | `x`{x}
+    | `xy`{xy, sort: 1}
+    | `y`{y}
+    ;
