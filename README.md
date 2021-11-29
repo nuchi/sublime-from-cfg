@@ -1,3 +1,5 @@
+**Install this package at [Pypi](https://pypi.org/project/sublime-from-cfg/)**
+
 # Context-free grammar to Sublime-syntax file
 
 This project produces sublime-syntax highlighting files from a description of a context-free grammar.
