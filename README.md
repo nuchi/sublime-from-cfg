@@ -2,6 +2,8 @@
 
 This project produces sublime-syntax highlighting files from a description of a context-free grammar.
 
+**Note: I used this tool to generate [a syntax definition file for the Faust programming language.](https://github.com/nuchi/faust-sublime-syntax)**
+
 It implements a "Generalised Recursive Descent Parser" as described in [_Generalised recursive descent parsing and follow-determinism_](https://link.springer.com/content/pdf/10.1007%2FBFb0026420.pdf) by Adrian Johnstone and Elizabeth Scott. It's essentially a non-deterministic [LL(1)](https://en.wikipedia.org/wiki/LL_parser) parser. If the grammar happens to be LL(1) then no backtracking will happen and it's just an LL(1) parser. If the grammar is not LL(1), then alternatives will be tried in sequence, backtracking until one succeeds.
 
 IMPORTANT: The grammar must be non-left-recursive, and also must be follow-determined. If the grammar is left-recursive then the program will complain and alert the user, but I don't know an algorithm to detect whether the grammar is follow-determined. **IF THE GRAMMAR IS _NOT_ FOLLOW-DETERMINED, THEN THE LANGUAGE RECOGNIZED BY THE GENERATED SYNTAX WILL SIMPLY NOT MATCH THE INPUT GRAMMAR.**
