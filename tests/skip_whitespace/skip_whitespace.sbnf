@@ -1,0 +1,7 @@
+main : a b;
+
+a : `a`;
+b{b} : `b`;
+
+# prototype : (~comment)* ;
+# comment{comment} : `#` ~'$\n?';
