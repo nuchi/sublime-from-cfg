@@ -496,7 +496,7 @@ class SublimeSyntax:
         context = [] if proto else [{'meta_include_prototype': False}]
         if not nt.passive:
             return context + [
-                {'match': '', 'set': L([self._meta_name(nt), 'pop2!', self._nonterminal_name(nt)])},
+                {'match': r'(?=\S)', 'set': L([self._meta_name(nt), 'pop2!', self._nonterminal_name(nt)])},
             ]
         for regex in set.union(set(self.np_table[np_nt]), set(self.p_table[np_nt])):
             context.append({

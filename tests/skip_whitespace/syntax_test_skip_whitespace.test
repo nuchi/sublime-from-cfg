@@ -1,0 +1,4 @@
+# SYNTAX TEST "Packages/tests/skip_whitespace/skip_whitespace.sublime-syntax"
+ a b
+# ^ - b
+#  ^ b
